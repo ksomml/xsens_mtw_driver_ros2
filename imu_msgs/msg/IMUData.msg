@@ -1,0 +1,6 @@
+string id
+imu_msgs/Quaternion orientation
+imu_msgs/Quaternion xsens_orientation
+geometry_msgs/Vector3 angular_velocity
+geometry_msgs/Vector3 linear_acceleration
+geometry_msgs/Vector3 magnetic_field
