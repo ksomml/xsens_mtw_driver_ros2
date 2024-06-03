@@ -244,8 +244,9 @@ namespace xsens_mtw_manager
         start_time = std::chrono::system_clock::now();
     }
 
-    XsensManager::~XsensManager() = default;
-
+    XsensManager::~XsensManager() {
+        cleanupAndShutdown();
+    }
 
     void XsensManager::timer_callback()
     {
