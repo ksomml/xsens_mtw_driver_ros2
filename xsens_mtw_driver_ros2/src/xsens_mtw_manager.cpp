@@ -212,10 +212,6 @@ namespace xsens_mtw_manager
             imu_data_msg[i].orientation.x = 0.0;
             imu_data_msg[i].orientation.y = 0.0;
             imu_data_msg[i].orientation.z = 0.0;
-            imu_data_msg[i].xsens_orientation.w = 1.0;
-            imu_data_msg[i].xsens_orientation.x = 0.0;
-            imu_data_msg[i].xsens_orientation.y = 0.0;
-            imu_data_msg[i].xsens_orientation.z = 0.0;
             imu_data_msg[i].angular_velocity.x = 0.0;
             imu_data_msg[i].angular_velocity.y = 0.0;
             imu_data_msg[i].angular_velocity.z = 0.0;
