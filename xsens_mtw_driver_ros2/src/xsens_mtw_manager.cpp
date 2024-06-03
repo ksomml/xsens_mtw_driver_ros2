@@ -303,12 +303,6 @@ namespace xsens_mtw_manager
                         mag[1] = packet->calibratedMagneticField().value(1);
                         mag[2] = packet->calibratedMagneticField().value(2);
 
-                        auto xsens_quat = packet->orientationQuaternion();
-                        imu_data_msg[i].xsens_orientation.w = xsens_quat.w();
-                        imu_data_msg[i].xsens_orientation.x = xsens_quat.x();
-                        imu_data_msg[i].xsens_orientation.y = xsens_quat.y();
-                        imu_data_msg[i].xsens_orientation.z = xsens_quat.z();
-
                         vqfContainer[i].second.update(gyr, acc, mag);
                         vqfContainer[i].second.getQuat9D(quat);
 
