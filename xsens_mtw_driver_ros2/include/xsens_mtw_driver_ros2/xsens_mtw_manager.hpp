@@ -12,11 +12,17 @@
 // ROS2
 #include "rclcpp/rclcpp.hpp"
 
+// Custom ROS 2 messages
+#include "imu_msgs/msg/imu_data.hpp"
+#include "imu_msgs/msg/imu_data_array.hpp"
+#include "imu_msgs/msg/quaternion.hpp"
+
 // Driver
 #include "mastercallback.hpp"
 #include "mtwcallback.hpp"
 #include "findClosestUpdateRate.hpp"
 
+// XSens
 #include "../include/xsens/xsensdeviceapi.h" 	// The Xsens device API header 
 #include "../include/xsens/xstypes.h"
 #include "../include/xsens/xsmutex.h"
@@ -24,11 +30,6 @@
 
 // VQF
 #include "vqf.hpp"
-
-// Custom messages
-#include "imu_msgs/msg/imu_data.hpp"
-#include "imu_msgs/msg/imu_data_array.hpp"
-#include "imu_msgs/msg/quaternion.hpp"
 
 
 /*
@@ -55,29 +56,21 @@ namespace xsens_mtw_manager
         void cleanupAndShutdown();
 
     private:
-        double rate;
-        double imu_rate;
-        size_t connectedMTWCount;
+        double ros2_rate;
+        int imu_rate;
+        int radio_channel;
+        bool isRecording;
+        std::string topic_name;
 
-        // Debugging
-        std::chrono::system_clock::time_point start_time;
-        std::chrono::system_clock::time_point end_time;
-        std::chrono::duration<double, std::milli> elapsed_time;
-        int counter_ = 0;
-        int updaterate_debug = 0;
-
-        
-        
+        // ROS2
+        rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr imu_pub;
         rclcpp::Time time_start;
         rclcpp::TimerBase::SharedPtr timer_;
 
-        std::vector<std::pair<int, VQF>> vqfContainer;
-        std::vector<imu_msgs::msg::IMUData> imu_data_msg;
-
-        rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr imu_pub;
-
-        WirelessMasterCallback wirelessMasterCallback;							// Callback for wireless master
-        std::vector<MtwCallback*> mtwCallbacks;									// Callbacks for mtw devices
+        // XSens
+        size_t connectedMTWCount;
+        WirelessMasterCallback wirelessMasterCallback;
+        std::vector<MtwCallback*> mtwCallbacks;
         XsControl* control;
         XsPortInfoArray detectedDevices;
         XsPortInfoArray::const_iterator wirelessMasterPort;
@@ -86,7 +79,18 @@ namespace xsens_mtw_manager
         XsDeviceIdArray mtwDeviceIds;
         XsDevicePtrArray mtwDevices;
 
-        void timer_callback();
+        // VQF
+        std::vector<std::pair<int, VQF>> vqfContainer;
+        std::vector<imu_msgs::msg::IMUData> imu_data_msg;
+
+        // Debugging
+        std::chrono::system_clock::time_point start_time;
+        std::chrono::system_clock::time_point end_time;
+        std::chrono::duration<double, std::milli> elapsed_time;
+        int counter_ = 0;
+        
+
+        void timerCallback();
         void handleError(std::string error);
         void handleAbort(int);
     };

@@ -5,22 +5,32 @@ namespace xsens_mtw_manager
     XsensManager::XsensManager(const std::string& name)
         : Node(name)
     {
-        // get main loop rate
-        this->declare_parameter("rate", 200.0);
-        rate = this->get_parameter("rate").as_double();
-        double timestep = (1 / rate) * 1000;
+        // --------------------------------------------------------------------
+        // ROS2 PARAMETERS
+        this->declare_parameter("topic_name", "xsens_imu_data");
+        topic_name = this->get_parameter("topic_name").as_string();
+
+        this->declare_parameter("ros2_rate", 200.0);
+        ros2_rate = this->get_parameter("ros2_rate").as_double();
+
+        this->declare_parameter("imu_rate", 100);
+        imu_rate = this->get_parameter("imu_rate").as_int();
+
+        this->declare_parameter("radio_channel", 25);
+        radio_channel = this->get_parameter("radio_channel").as_int();
+
+
+        // --------------------------------------------------------------------
+        // TIMER
+        double timestep = (1 / ros2_rate) * 1000;
         auto rate_ms = std::chrono::milliseconds(int(timestep));
-        timer_ = this->create_wall_timer(rate_ms, std::bind(&XsensManager::timer_callback, this));
+        timer_ = this->create_wall_timer(rate_ms, std::bind(&XsensManager::timerCallback, this));
 
-        RCLCPP_WARN(this->get_logger(), "ROS2 publish rate set to: %.2f Hz", rate);
+        RCLCPP_WARN(this->get_logger(), "ROS2 publish rate: %.2f Hz", ros2_rate);
 
-        // get IMU rate
-        this->declare_parameter("imu_rate", 100.0);
-        imu_rate = this->get_parameter("imu_rate").as_double();
 
-        const int desiredUpdateRate = static_cast<int>(imu_rate);
-        const int desiredRadioChannel = 25;		// Use radio channel 25 for wireless master. (try channels 11, 15, 20 or 25)
-
+        // --------------------------------------------------------------------
+        // XSENS API
         RCLCPP_INFO(this->get_logger(), "Creating XsControl object...");
         control = XsControl::construct();
         if (control == 0)
@@ -29,27 +39,22 @@ namespace xsens_mtw_manager
             return;
         }
 
+
+        // --------------------------------------------------------------------
+        // DEVICE - MASTER SETUP
         detectedDevices = XsScanner::scanPorts();
         wirelessMasterPort = detectedDevices.begin();
 
         RCLCPP_INFO(this->get_logger(), "Scanning for devices...");
 
-        while (wirelessMasterPort != detectedDevices.end() && !wirelessMasterPort->deviceId().isWirelessMaster())
-        {
-            ++wirelessMasterPort;
-        }
-        if (wirelessMasterPort == detectedDevices.end())
-        {
-            throw std::invalid_argument("No wireless masters found!");
-        }
-
+        while (wirelessMasterPort != detectedDevices.end() && !wirelessMasterPort->deviceId().isWirelessMaster()) ++wirelessMasterPort;
+        if (wirelessMasterPort == detectedDevices.end()) throw std::invalid_argument("No wireless masters found!");
 
         RCLCPP_WARN(this->get_logger(), "Found a device with ID: %s @ port: %s, baudrate: %d",
             wirelessMasterPort->deviceId().toString().toStdString().c_str(),
             wirelessMasterPort->portName().toStdString().c_str(), wirelessMasterPort->baudrate());
 
         RCLCPP_INFO(this->get_logger(), "Opening port...");
-
         if (!control->openPort(wirelessMasterPort->portName().toStdString(), wirelessMasterPort->baudrate()))
         {
             std::ostringstream error;
@@ -58,7 +63,6 @@ namespace xsens_mtw_manager
         }
 
         RCLCPP_INFO(this->get_logger(), "Getting XsDevice instance for wireless master...");
-
         wirelessMasterDevice = control->device(wirelessMasterPort->deviceId());
         if (wirelessMasterDevice == 0)
         {
@@ -66,10 +70,9 @@ namespace xsens_mtw_manager
             error << "Failed to construct XsDevice instance: " << *wirelessMasterPort;
             throw std::runtime_error(error.str());
         }
-
         RCLCPP_INFO(this->get_logger(), "XsDevice instance for master created");
-        RCLCPP_INFO(this->get_logger(), "Setting config mode...");
 
+        RCLCPP_INFO(this->get_logger(), "Setting config mode...");
         if (!wirelessMasterDevice->gotoConfig())
         {
             std::ostringstream error;
@@ -80,21 +83,24 @@ namespace xsens_mtw_manager
         RCLCPP_INFO(this->get_logger(), "Attaching callback handler for master...");
         wirelessMasterDevice->addCallbackHandler(&wirelessMasterCallback);
 
+
+        // --------------------------------------------------------------------
+        // DEVICE - IMU UPDATE RATE
         RCLCPP_INFO(this->get_logger(), "Getting the list of the supported update rates...");
         const XsIntArray supportedUpdateRates = wirelessMasterDevice->supportedUpdateRates();
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "Supported update rates: ");
+        std::ostringstream supportedUpdateRatesStr;
         for (XsIntArray::const_iterator itUpRate = supportedUpdateRates.begin(); itUpRate != supportedUpdateRates.end(); ++itUpRate)
         {
-            std::cout << *itUpRate << " ";
+            supportedUpdateRatesStr << *itUpRate << " ";
         }
-        std::cout << std::endl;
+        RCLCPP_INFO_STREAM(this->get_logger(), "Supported update rates: " << supportedUpdateRatesStr.str(););
 
-        const int newUpdateRate = findClosestUpdateRate(supportedUpdateRates, desiredUpdateRate);
+        const int newUpdateRate = findClosestUpdateRate(supportedUpdateRates, imu_rate);
         const double timer_period = 1.0 / static_cast<double>(newUpdateRate);
-        updaterate_debug = newUpdateRate;
+        imu_rate = newUpdateRate;   // Debugging
 
-        RCLCPP_WARN_STREAM(this->get_logger(), "Setting update rate to " << newUpdateRate << " Hz...");
+        RCLCPP_WARN_STREAM(this->get_logger(), "IMU update rate: " << newUpdateRate << " Hz...");
         if (!wirelessMasterDevice->setUpdateRate(newUpdateRate))
         {
             std::ostringstream error;
@@ -102,6 +108,9 @@ namespace xsens_mtw_manager
             throw std::runtime_error(error.str());
         }
 
+
+        // --------------------------------------------------------------------
+        // DEVICE - MASTER RADIO CHANNEL
         RCLCPP_INFO(this->get_logger(), "Disabling radio channel if previously enabled...");
         if (wirelessMasterDevice->isRadioEnabled())
         {
@@ -113,16 +122,19 @@ namespace xsens_mtw_manager
             }
         }
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "Setting radio channel to " << desiredRadioChannel << " and enabling radio...");
-        if (!wirelessMasterDevice->enableRadio(desiredRadioChannel))
+        RCLCPP_INFO_STREAM(this->get_logger(), "Setting radio channel to " << radio_channel << " and enabling radio...");
+        if (!wirelessMasterDevice->enableRadio(radio_channel))
         {
             std::ostringstream error;
             error << "Failed to set radio channel: " << *wirelessMasterDevice;
             throw std::runtime_error(error.str());
         }
 
-        RCLCPP_INFO(this->get_logger(), "Waiting for MTW to wirelessly connect...");
-        RCLCPP_WARN(this->get_logger(), "Press 'y' to start measurement or 'q' to end node.");
+
+        // --------------------------------------------------------------------
+        // DEVICE - MTW SCAN
+        RCLCPP_INFO(this->get_logger(), "Waiting for MTw's to wirelessly connect...");
+        RCLCPP_WARN(this->get_logger(), "Press 'y' to start measurement or 'q' to quit.");
         bool waitForConnections = true;
         bool interruption = false;
         connectedMTWCount = wirelessMasterCallback.getWirelessMTWs().size();
@@ -135,14 +147,11 @@ namespace xsens_mtw_manager
             {
                 size_t nextCount = wirelessMasterCallback.getWirelessMTWs().size();
                 if (nextCount != connectedMTWCount)
-                {
-                    RCLCPP_INFO_STREAM(this->get_logger(), "Number of connected MTWs: " << (int)nextCount);
+                {   
+                    RCLCPP_INFO_STREAM(this->get_logger(), "Number of connected MTw's: " << (int)nextCount);
                     connectedMTWCount = nextCount;
                 }
-                else
-                {
-                    break;
-                }
+                else break;
             }
 
             if (_kbhit())
@@ -159,33 +168,33 @@ namespace xsens_mtw_manager
 
         } while (waitForConnections && rclcpp::ok());
 
-        if (interruption) cleanupAndShutdown();
+        if (interruption) delete this;      // destructor call
 
-        RCLCPP_INFO(this->get_logger(), "Getting XsDevice instances for all MTWs...");
+
+        // --------------------------------------------------------------------
+        // DEVICE - MTW SETUP
+        RCLCPP_INFO(this->get_logger(), "Putting device into measurement mode...");
+        if (!wirelessMasterDevice->gotoMeasurement())
+        {
+            std::ostringstream error;
+            error << "Could not put device " << *wirelessMasterDevice << " into measurement mode.";
+            throw std::runtime_error(error.str());
+        }
+
+        RCLCPP_INFO(this->get_logger(), "Getting XsDevice instances for all MTw's...");
         allDeviceIds = control->deviceIds();
 
         for (XsDeviceIdArray::const_iterator i = allDeviceIds.begin(); i != allDeviceIds.end(); ++i)
-        {
-            if (i->isMtw())
-            {
-                mtwDeviceIds.push_back(*i);
-            }
-        }
+            if (i->isMtw()) mtwDeviceIds.push_back(*i);
 
         for (XsDeviceIdArray::const_iterator i = mtwDeviceIds.begin(); i != mtwDeviceIds.end(); ++i)
         {
             XsDevicePtr mtwDevice = control->device(*i);
-            if (mtwDevice != 0)
-            {
-                mtwDevices.push_back(mtwDevice);
-            }
-            else
-            {
-                throw std::runtime_error("Failed to create an MTW XsDevice instance");
-            }
+            if (mtwDevice != 0) mtwDevices.push_back(mtwDevice);
+            else throw std::runtime_error("Failed to create an MTw XsDevice instance");
         }
 
-        RCLCPP_INFO(this->get_logger(), "Attaching callback handlers to MTWs...");
+        RCLCPP_INFO(this->get_logger(), "Attaching callback handlers to MTw's...");
         mtwCallbacks.resize(mtwDevices.size());
         for (int i = 0; i < (int)mtwDevices.size(); ++i)
         {
@@ -194,16 +203,19 @@ namespace xsens_mtw_manager
         }
 
 
-        RCLCPP_INFO(this->get_logger(), "VQF timer period set: %.4fs (rate: %dHz)", timer_period, newUpdateRate);
-
-        // VQF
+        // --------------------------------------------------------------------
+        // VQF - QUATERNION FILTER (https://vqf.readthedocs.io/en/latest/)
         for (int i = 0; i < (int)mtwDevices.size(); ++i)
         {
             VQF vqf(timer_period);
             vqfContainer.emplace_back(i, vqf);
         }
 
-        // Setup message
+        RCLCPP_INFO(this->get_logger(), "VQF timer period set: %.4fs (rate: %dHz)", timer_period, newUpdateRate);
+
+
+        // --------------------------------------------------------------------
+        // ROS2 MESSAGE
         imu_data_msg.resize(mtwCallbacks.size());
 
         for (size_t i = 0; i < mtwCallbacks.size(); ++i)
@@ -224,37 +236,29 @@ namespace xsens_mtw_manager
             imu_data_msg[i].magnetic_field.z = 0.0;
         }
 
-        RCLCPP_INFO(this->get_logger(), "Starting measurement...");
-        if (!wirelessMasterDevice->gotoMeasurement())
-        {
-            std::ostringstream error;
-            error << "Failed to goto measurement mode: " << *wirelessMasterDevice;
-            throw std::runtime_error(error.str());
-        }
+
+        // --------------------------------------------------------------------
+        // ROS2 PUBLISHER
+        imu_pub = this->create_publisher<imu_msgs::msg::IMUDataArray>(topic_name, 10);
+        RCLCPP_WARN(this->get_logger(), "Publishers started, press 'q' to quit.");
+        RCLCPP_WARN(this->get_logger(), "Press 'r' to start and 's' to stop recording.");
 
 
-        // Publisher
-        RCLCPP_INFO(this->get_logger(), "Publish loop starting...");
-        imu_pub = this->create_publisher<imu_msgs::msg::IMUDataArray>("xsens_imu_data", 10);
-        RCLCPP_WARN(this->get_logger(), "Publishers started, press 's' to stop!");
-
-
-        // Start timer
+        // --------------------------------------------------------------------
+        // TIMER (DEBUGGING)
         time_start = rclcpp::Clock().now();
-
         start_time = std::chrono::system_clock::now();
     }
-
-    // XsensManager::~XsensManager() = default;
 
     XsensManager::~XsensManager() {
         cleanupAndShutdown();
     }
 
 
-    void XsensManager::timer_callback()
+    void XsensManager::timerCallback()
     {
-
+        // --------------------------------------------------------------------
+        // MAIN LOOP
         if (!_kbhit())
         {
             imu_msgs::msg::IMUDataArray imu_data_array_msg;
@@ -267,13 +271,13 @@ namespace xsens_mtw_manager
 
                     if (packet->containsCalibratedData())
                     {
+                        // Debugging
                         if (i == 0)
                         {
                             counter_++;
-
-                            if (counter_ == updaterate_debug) {
-                                RCLCPP_INFO(this->get_logger(), "------------------------------------------------------------------");
-                                RCLCPP_INFO(this->get_logger(), "Time elapsed: %.2f s", elapsed_time.count() / 1000);
+                            if (counter_ == imu_rate) {
+                                // check if loop time is 1.0s which equals to the desired imu update rate
+                                RCLCPP_INFO(this->get_logger(), "IMU 1 - LoopTimeCheck (should be 1.00s): %.2fs", elapsed_time.count() / 1000);
 
                                 // reset counter + elapsed_time
                                 counter_ = 0;
@@ -285,7 +289,7 @@ namespace xsens_mtw_manager
                             elapsed_time = elapsed_time + static_cast<decltype(elapsed_time)>(duration);
                             start_time = std::chrono::system_clock::now();
                         }
-
+        
                         // VQF filter for quaternion orientation
                         vqf_real_t acc[3];
                         vqf_real_t gyr[3];
@@ -327,6 +331,7 @@ namespace xsens_mtw_manager
                     mtwCallbacks[i]->deleteOldestPacket();
                 }
 
+                // Using last known data if no new data is available
                 imu_data_array_msg.imu_data.push_back(imu_data_msg[i]);
             }
 
@@ -334,19 +339,40 @@ namespace xsens_mtw_manager
             imu_data_array_msg.timestamp = time_elapsed;
             imu_pub->publish(imu_data_array_msg);
         }
-        else if ((char)_getch() == 's') cleanupAndShutdown();
+        else
+        {
+            char keypressed = (char)_getch();
+            if (keypressed == 'q') delete this;     // destructor call
+            if (keypressed == 'r')
+            {
+                if (isRecording) RCLCPP_INFO(this->get_logger(), "Already recording...");
+                else
+                {
+                    isRecording = true;
+                    RCLCPP_WARN(this->get_logger(), "STARTED RECORDING - TODO");
+                }
+            }
+            if (keypressed == 's')
+            {
+                if (!isRecording) RCLCPP_INFO(this->get_logger(), "Not recording...");
+                else
+                {
+                    isRecording = false;
+                    RCLCPP_WARN(this->get_logger(), "STOPPED RECORDING - TODO");
+                }
+            }
+        }
     }
-
 
     void XsensManager::cleanupAndShutdown()
     {
         try
         {
-            RCLCPP_INFO(this->get_logger(), "Setting config mode...");
+            RCLCPP_INFO(this->get_logger(), "Putting device into configuration mode...");
             if (!wirelessMasterDevice->gotoConfig())
             {
                 std::ostringstream error;
-                error << "Failed to goto config mode: " << *wirelessMasterDevice;
+                error << "Could not put device " << *wirelessMasterDevice << " into configuration mode.";
                 throw std::runtime_error(error.str());
             }
 
