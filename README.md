@@ -5,7 +5,7 @@
 ```
 This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
-<img src="./images/mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
+<img src="xsens_mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
 
 
 ## TODO
@@ -71,7 +71,7 @@ Supported sensor update rates for the Xsens MTw Awinda System:
 
 ## Xsens MTw Awinda IMU Orientation
 
-<img src="./images/xsens_mtw_awinda_imu.png" alt="Image Description" width="200" height="180">
+<img src="xsens_mtw_awinda_imu.png" alt="Image Description" width="200" height="180">
 
 
 ## Troubleshooting
