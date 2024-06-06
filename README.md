@@ -5,15 +5,18 @@
 ```
 This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
-<img src="./xsens_mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
+<img src="./images/mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
 
 
 ## TODO
 
+- Implement recording option which saves formatted log file
+- Better Code
+- Implement services (get_ready(), status(), record(), etc.)
 - Remove debugging logs
-- Add .yaml config for `xsens_mtw_manager` node for easy access (update rates, disabling magnetometer, etc.)
 - Update README
 - More fixes (correct shutdown/cleanup, etc.)
+- params.yaml
 
 
 ## Hardware
@@ -29,6 +32,12 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 - Instead of using the Xsens Quaternion, this driver uses the state-of-the-art quaternion filter [VQF](https://doi.org/10.1016/j.inffus.2022.10.014)
 
 
+## Prerequisites
+
+- [Ubuntu Linux](https://www.releases.ubuntu.com/)  (tested with 22.04)
+- [ROS2](https://docs.ros.org/) (tested with Humble)
+
+
 ## Usage
 
 `TODO`
@@ -37,10 +46,12 @@ Commands:
 
 - `ros2 run xsens_mtw_driver_ros2 xsens_mtw_manager`
 - `ros2 run xsens_mtw_driver_ros2 xsens_mtw_visualization`
+- `ros2 launch xsens_mtw_driver_ros2 xsens_mtw_visualization.launch.py` (uses `config/imu_mapping.yaml`) [experimental]
 
 
 The driver upsamples the IMU data and publishes all sensor data into the `/xsens_imu_data` topic. \
 Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used. \
+The `params.yaml` is currently not used, due to the [problem](#problems) listed below. \
 The `imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position. Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
 
 Supported sensor update rates for the Xsens MTw Awinda System:
@@ -53,9 +64,14 @@ Supported sensor update rates for the Xsens MTw Awinda System:
 | 11 - 20  |            60 Hz        |
 | 21 - 32  |            40 Hz        |
 
+## Problems
+
+- Starting the `xsens_mtw_manager` node through launch files will prevent keyinput readings from `conio.c`, meaning the `params.yaml` would need to be loaded set up by a separate parameter server node.
+- CTRL+C does not execute the node destructor, thus not freeing the master device
+
 ## Xsens MTw Awinda IMU Orientation
 
-<img src="./xsens_mtw_awinda_imu.png" alt="Image Description" width="200" height="180">
+<img src="./images/xsens_mtw_awinda_imu.png" alt="Image Description" width="200" height="180">
 
 
 ## Troubleshooting
