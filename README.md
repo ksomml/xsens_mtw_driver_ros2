@@ -10,13 +10,12 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
 ## TODO
 
-- Implement recording option which saves formatted log file
-- Better Code
 - Implement services (get_ready(), status(), record(), etc.)
+- More fixes (correct shutdown/cleanup, etc.)
+- Implement params.yaml for configurable parameters
 - Remove debugging logs
 - Update README
-- More fixes (correct shutdown/cleanup, etc.)
-- params.yaml
+- Better Code (efficiency, follow coding conventions, )
 
 
 ## Hardware
@@ -34,8 +33,18 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
 ## Prerequisites
 
-- [Ubuntu Linux](https://www.releases.ubuntu.com/)  (tested with 22.04)
-- [ROS2](https://docs.ros.org/) (tested with Humble)
+- [Ubuntu Linux](https://www.releases.ubuntu.com/)
+- [ROS2](https://docs.ros.org/)
+
+Tested with Ubuntu 22.04 and ROS2 Humble.
+
+
+## Features
+
+- Orientation visualization in RViz for multiple IMUs at the same time
+- Data recording through button presses
+- (coming soon) Data recording through ros2 services
+- (coming soon) Adjustable .yaml config
 
 
 ## Usage
@@ -54,7 +63,13 @@ Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used.
 The `params.yaml` is currently not used, due to the [problem](#problems) listed below. \
 The `imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position. Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
 
-Supported sensor update rates for the Xsens MTw Awinda System:
+### Recording
+
+The time in `timestamp` is tracked from the start of the node. \
+Currently the recording will only save the quaternions. \
+Currently the recorded data is saved in the same directy where the node is started.
+
+### Supported sensor update rates for the Xsens MTw Awinda System
 
 |    IMUs  | desiredUpdateRate (max) |
 |----------|-------------------------|
@@ -64,10 +79,12 @@ Supported sensor update rates for the Xsens MTw Awinda System:
 | 11 - 20  |            60 Hz        |
 | 21 - 32  |            40 Hz        |
 
+
 ## Problems
 
 - Starting the `xsens_mtw_manager` node through launch files will prevent keyinput readings from `conio.c`, meaning the `params.yaml` would need to be loaded set up by a separate parameter server node.
 - CTRL+C does not execute the node destructor, thus not freeing the master device
+
 
 ## Xsens MTw Awinda IMU Orientation
 
@@ -96,10 +113,11 @@ $ newgrp dialout
 
 More troubleshooting on the [xsens_mti_driver page](http://wiki.ros.org/xsens_mti_driver)
 
+
 ### VSCode ROS2 Coding:
 
-Make sure to add `"/opt/ros/\<ros2version\>/include/**"` to the `includePath` in your `c_cpp_properties.json` from your `.vscode` folder
-<>
+Make sure to add `/opt/ros/\<ros2version\>/include/**` to the `includePath` in your `c_cpp_properties.json` from your `.vscode` folder.
+
 
 ## Related links
 
