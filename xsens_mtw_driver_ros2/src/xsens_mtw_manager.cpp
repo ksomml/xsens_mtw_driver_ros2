@@ -8,32 +8,35 @@ namespace xsens_mtw_manager
         // --------------------------------------------------------------------
         // ROS2 PARAMETERS
         this->declare_parameter("topic_name", "xsens_imu_data");
-        topic_name = this->get_parameter("topic_name").as_string();
+        topic_name_ = this->get_parameter("topic_name").as_string();
 
         this->declare_parameter("ros2_rate", 200.0);
-        ros2_rate = this->get_parameter("ros2_rate").as_double();
+        ros2_rate_ = this->get_parameter("ros2_rate").as_double();
 
         this->declare_parameter("imu_rate", 100);
-        imu_rate = this->get_parameter("imu_rate").as_int();
+        imu_rate_ = this->get_parameter("imu_rate").as_int();
 
         this->declare_parameter("radio_channel", 25);
-        radio_channel = this->get_parameter("radio_channel").as_int();
+        radio_channel_ = this->get_parameter("radio_channel").as_int();
+
+        this->declare_parameter("reset_timer_on_record", true);
+        resetTimerOnRecord_ = this->get_parameter("reset_timer_on_record").as_bool();
 
 
         // --------------------------------------------------------------------
         // TIMER
-        double timestep = (1 / ros2_rate) * 1000;
+        double timestep = (1 / ros2_rate_) * 1000;
         auto rate_ms = std::chrono::milliseconds(int(timestep));
         timer_ = this->create_wall_timer(rate_ms, std::bind(&XsensManager::timerCallback, this));
 
-        RCLCPP_WARN(this->get_logger(), "ROS2 publish rate: %.2f Hz", ros2_rate);
+        RCLCPP_WARN(this->get_logger(), "ROS2 publish rate: %.2f Hz", ros2_rate_);
 
 
         // --------------------------------------------------------------------
         // XSENS API
         RCLCPP_INFO(this->get_logger(), "Creating XsControl object...");
-        control = XsControl::construct();
-        if (control == 0)
+        control_ = XsControl::construct();
+        if (control_ == 0)
         {
             handleError("Failed to construct XsControl instance.");
             return;
@@ -42,67 +45,67 @@ namespace xsens_mtw_manager
 
         // --------------------------------------------------------------------
         // DEVICE - MASTER SETUP
-        detectedDevices = XsScanner::scanPorts();
-        wirelessMasterPort = detectedDevices.begin();
+        detectedDevices_ = XsScanner::scanPorts();
+        wirelessMasterPort_ = detectedDevices_.begin();
 
         RCLCPP_INFO(this->get_logger(), "Scanning for devices...");
 
-        while (wirelessMasterPort != detectedDevices.end() && !wirelessMasterPort->deviceId().isWirelessMaster()) ++wirelessMasterPort;
-        if (wirelessMasterPort == detectedDevices.end()) throw std::invalid_argument("No wireless masters found!");
+        while (wirelessMasterPort_ != detectedDevices_.end() && !wirelessMasterPort_->deviceId().isWirelessMaster()) ++wirelessMasterPort_;
+        if (wirelessMasterPort_ == detectedDevices_.end()) throw std::invalid_argument("No wireless masters found!");
 
         RCLCPP_WARN(this->get_logger(), "Found a device with ID: %s @ port: %s, baudrate: %d",
-            wirelessMasterPort->deviceId().toString().toStdString().c_str(),
-            wirelessMasterPort->portName().toStdString().c_str(), wirelessMasterPort->baudrate());
+            wirelessMasterPort_->deviceId().toString().toStdString().c_str(),
+            wirelessMasterPort_->portName().toStdString().c_str(), wirelessMasterPort_->baudrate());
 
         RCLCPP_INFO(this->get_logger(), "Opening port...");
-        if (!control->openPort(wirelessMasterPort->portName().toStdString(), wirelessMasterPort->baudrate()))
+        if (!control_->openPort(wirelessMasterPort_->portName().toStdString(), wirelessMasterPort_->baudrate()))
         {
             std::ostringstream error;
-            error << "Failed to open port " << *wirelessMasterPort;
+            error << "Failed to open port " << *wirelessMasterPort_;
             throw std::runtime_error(error.str());
         }
 
         RCLCPP_INFO(this->get_logger(), "Getting XsDevice instance for wireless master...");
-        wirelessMasterDevice = control->device(wirelessMasterPort->deviceId());
-        if (wirelessMasterDevice == 0)
+        wirelessMasterDevice_ = control_->device(wirelessMasterPort_->deviceId());
+        if (wirelessMasterDevice_ == 0)
         {
             std::ostringstream error;
-            error << "Failed to construct XsDevice instance: " << *wirelessMasterPort;
+            error << "Failed to construct XsDevice instance: " << *wirelessMasterPort_;
             throw std::runtime_error(error.str());
         }
         RCLCPP_INFO(this->get_logger(), "XsDevice instance for master created");
 
         RCLCPP_INFO(this->get_logger(), "Setting config mode...");
-        if (!wirelessMasterDevice->gotoConfig())
+        if (!wirelessMasterDevice_->gotoConfig())
         {
             std::ostringstream error;
-            error << "Failed to goto config mode: " << *wirelessMasterDevice;
+            error << "Failed to goto config mode: " << *wirelessMasterDevice_;
             throw std::runtime_error(error.str());
         }
 
         RCLCPP_INFO(this->get_logger(), "Attaching callback handler for master...");
-        wirelessMasterDevice->addCallbackHandler(&wirelessMasterCallback);
+        wirelessMasterDevice_->addCallbackHandler(&wirelessMasterCallback_);
 
 
         // --------------------------------------------------------------------
         // DEVICE - IMU UPDATE RATE
         RCLCPP_INFO(this->get_logger(), "Getting the list of the supported update rates...");
-        const XsIntArray supportedUpdateRates = wirelessMasterDevice->supportedUpdateRates();
+        const XsIntArray supportedUpdateRates = wirelessMasterDevice_->supportedUpdateRates();
 
         std::ostringstream supportedUpdateRatesStr;
         for (XsIntArray::const_iterator itUpRate = supportedUpdateRates.begin(); itUpRate != supportedUpdateRates.end(); ++itUpRate)
             supportedUpdateRatesStr << *itUpRate << " ";
         RCLCPP_INFO_STREAM(this->get_logger(), "Supported update rates: " << supportedUpdateRatesStr.str(););
 
-        const int newUpdateRate = findClosestUpdateRate(supportedUpdateRates, imu_rate);
+        const int newUpdateRate = findClosestUpdateRate(supportedUpdateRates, imu_rate_);
         const double timer_period = 1.0 / static_cast<double>(newUpdateRate);
-        imu_rate = newUpdateRate;   // Debugging
+        imu_rate_ = newUpdateRate;   // Debugging
 
         RCLCPP_WARN_STREAM(this->get_logger(), "IMU update rate: " << newUpdateRate << " Hz...");
-        if (!wirelessMasterDevice->setUpdateRate(newUpdateRate))
+        if (!wirelessMasterDevice_->setUpdateRate(newUpdateRate))
         {
             std::ostringstream error;
-            error << "Failed to set update rate: " << *wirelessMasterDevice;
+            error << "Failed to set update rate: " << *wirelessMasterDevice_;
             throw std::runtime_error(error.str());
         }
 
@@ -110,21 +113,21 @@ namespace xsens_mtw_manager
         // --------------------------------------------------------------------
         // DEVICE - MASTER RADIO CHANNEL
         RCLCPP_INFO(this->get_logger(), "Disabling radio channel if previously enabled...");
-        if (wirelessMasterDevice->isRadioEnabled())
+        if (wirelessMasterDevice_->isRadioEnabled())
         {
-            if (!wirelessMasterDevice->disableRadio())
+            if (!wirelessMasterDevice_->disableRadio())
             {
                 std::ostringstream error;
-                error << "Failed to disable radio channel: " << *wirelessMasterDevice;
+                error << "Failed to disable radio channel: " << *wirelessMasterDevice_;
                 throw std::runtime_error(error.str());
             }
         }
 
-        RCLCPP_INFO_STREAM(this->get_logger(), "Setting radio channel to " << radio_channel << " and enabling radio...");
-        if (!wirelessMasterDevice->enableRadio(radio_channel))
+        RCLCPP_INFO_STREAM(this->get_logger(), "Setting radio channel to " << radio_channel_ << " and enabling radio...");
+        if (!wirelessMasterDevice_->enableRadio(radio_channel_))
         {
             std::ostringstream error;
-            error << "Failed to set radio channel: " << *wirelessMasterDevice;
+            error << "Failed to set radio channel: " << *wirelessMasterDevice_;
             throw std::runtime_error(error.str());
         }
 
@@ -135,7 +138,7 @@ namespace xsens_mtw_manager
         RCLCPP_WARN(this->get_logger(), "Press 'y' to start measurement or 'q' to quit.");
         bool waitForConnections = true;
         bool interruption = false;
-        connectedMTWCount = wirelessMasterCallback.getWirelessMTWs().size();
+        connectedMTWCount_ = wirelessMasterCallback_.getWirelessMTWs().size();
 
         do
         {
@@ -143,11 +146,11 @@ namespace xsens_mtw_manager
 
             while (true)
             {
-                size_t nextCount = wirelessMasterCallback.getWirelessMTWs().size();
-                if (nextCount != connectedMTWCount)
+                size_t nextCount = wirelessMasterCallback_.getWirelessMTWs().size();
+                if (nextCount != connectedMTWCount_)
                 {
                     RCLCPP_INFO_STREAM(this->get_logger(), "Number of connected MTw's: " << (int)nextCount);
-                    connectedMTWCount = nextCount;
+                    connectedMTWCount_ = nextCount;
                 }
                 else break;
             }
@@ -158,7 +161,7 @@ namespace xsens_mtw_manager
                 switch (keypressed)
                 {
                 case 'y':
-                    if (connectedMTWCount == 0)
+                    if (connectedMTWCount_ == 0)
                         RCLCPP_WARN(this->get_logger(), "No MTw's connected, press 'y' to start measurement or 'q' to quit.");
                     else
                         waitForConnections = false;
@@ -179,41 +182,41 @@ namespace xsens_mtw_manager
         // --------------------------------------------------------------------
         // DEVICE - MTW SETUP
         RCLCPP_INFO(this->get_logger(), "Putting device into measurement mode...");
-        if (!wirelessMasterDevice->gotoMeasurement())
+        if (!wirelessMasterDevice_->gotoMeasurement())
         {
             std::ostringstream error;
-            error << "Could not put device " << *wirelessMasterDevice << " into measurement mode.";
+            error << "Could not put device " << *wirelessMasterDevice_ << " into measurement mode.";
             throw std::runtime_error(error.str());
         }
 
         RCLCPP_INFO(this->get_logger(), "Getting XsDevice instances for all MTw's...");
-        allDeviceIds = control->deviceIds();
+        allDeviceIds_ = control_->deviceIds();
 
-        for (XsDeviceIdArray::const_iterator i = allDeviceIds.begin(); i != allDeviceIds.end(); ++i)
-            if (i->isMtw()) mtwDeviceIds.push_back(*i);
+        for (XsDeviceIdArray::const_iterator i = allDeviceIds_.begin(); i != allDeviceIds_.end(); ++i)
+            if (i->isMtw()) mtwDeviceIds_.push_back(*i);
 
-        for (XsDeviceIdArray::const_iterator i = mtwDeviceIds.begin(); i != mtwDeviceIds.end(); ++i)
+        for (XsDeviceIdArray::const_iterator i = mtwDeviceIds_.begin(); i != mtwDeviceIds_.end(); ++i)
         {
-            XsDevicePtr mtwDevice = control->device(*i);
-            if (mtwDevice != 0) mtwDevices.push_back(mtwDevice);
+            XsDevicePtr mtwDevice = control_->device(*i);
+            if (mtwDevice != 0) mtwDevices_.push_back(mtwDevice);
             else throw std::runtime_error("Failed to create an MTw XsDevice instance");
         }
 
         RCLCPP_INFO(this->get_logger(), "Attaching callback handlers to MTw's...");
-        mtwCallbacks.resize(mtwDevices.size());
-        for (int i = 0; i < (int)mtwDevices.size(); ++i)
+        mtwCallbacks_.resize(mtwDevices_.size());
+        for (int i = 0; i < (int)mtwDevices_.size(); ++i)
         {
-            mtwCallbacks[i] = new MtwCallback(i, mtwDevices[i]);
-            mtwDevices[i]->addCallbackHandler(mtwCallbacks[i]);
+            mtwCallbacks_[i] = new MtwCallback(i, mtwDevices_[i]);
+            mtwDevices_[i]->addCallbackHandler(mtwCallbacks_[i]);
         }
 
 
         // --------------------------------------------------------------------
         // VQF - QUATERNION FILTER (https://vqf.readthedocs.io/en/latest/)
-        for (int i = 0; i < (int)mtwDevices.size(); ++i)
+        for (int i = 0; i < (int)mtwDevices_.size(); ++i)
         {
             VQF vqf(timer_period);
-            vqfContainer.emplace_back(i, vqf);
+            vqfContainer_.emplace_back(i, vqf);
         }
 
         RCLCPP_INFO(this->get_logger(), "VQF timer period set: %.4fs (rate: %dHz)", timer_period, newUpdateRate);
@@ -221,38 +224,47 @@ namespace xsens_mtw_manager
 
         // --------------------------------------------------------------------
         // ROS2 MESSAGE
-        imu_data_msg.resize(mtwCallbacks.size());
+        imu_data_msg_.resize(mtwCallbacks_.size());
 
-        for (size_t i = 0; i < mtwCallbacks.size(); ++i)
+        for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
         {
-            imu_data_msg[i].id = mtwDeviceIds[i].toString().toStdString();
-            imu_data_msg[i].orientation.w = 1.0;
-            imu_data_msg[i].orientation.x = 0.0;
-            imu_data_msg[i].orientation.y = 0.0;
-            imu_data_msg[i].orientation.z = 0.0;
-            imu_data_msg[i].angular_velocity.x = 0.0;
-            imu_data_msg[i].angular_velocity.y = 0.0;
-            imu_data_msg[i].angular_velocity.z = 0.0;
-            imu_data_msg[i].linear_acceleration.x = 0.0;
-            imu_data_msg[i].linear_acceleration.y = 0.0;
-            imu_data_msg[i].linear_acceleration.z = 0.0;
-            imu_data_msg[i].magnetic_field.x = 0.0;
-            imu_data_msg[i].magnetic_field.y = 0.0;
-            imu_data_msg[i].magnetic_field.z = 0.0;
+            imu_data_msg_[i].id = mtwDeviceIds_[i].toString().toStdString();
+            imu_data_msg_[i].orientation.w = 1.0;
+            imu_data_msg_[i].orientation.x = 0.0;
+            imu_data_msg_[i].orientation.y = 0.0;
+            imu_data_msg_[i].orientation.z = 0.0;
+            imu_data_msg_[i].angular_velocity.x = 0.0;
+            imu_data_msg_[i].angular_velocity.y = 0.0;
+            imu_data_msg_[i].angular_velocity.z = 0.0;
+            imu_data_msg_[i].linear_acceleration.x = 0.0;
+            imu_data_msg_[i].linear_acceleration.y = 0.0;
+            imu_data_msg_[i].linear_acceleration.z = 0.0;
+            imu_data_msg_[i].magnetic_field.x = 0.0;
+            imu_data_msg_[i].magnetic_field.y = 0.0;
+            imu_data_msg_[i].magnetic_field.z = 0.0;
         }
 
 
         // --------------------------------------------------------------------
+        // ROS2 SERVICES
+        start_service_ = this->create_service<std_srvs::srv::Trigger>(name + "/start_recording",
+            std::bind(&XsensManager::startRecordingCallback, this, _1, _2));
+        stop_service_ = this->create_service<std_srvs::srv::Trigger>(name + "/stop_recording",
+            std::bind(&XsensManager::stopRecordingCallback, this, _1, _2));
+        RCLCPP_INFO(this->get_logger(), "Services started.");
+
+
+        // --------------------------------------------------------------------
         // ROS2 PUBLISHER
-        imu_pub = this->create_publisher<imu_msgs::msg::IMUDataArray>(topic_name, 10);
+        imu_pub_ = this->create_publisher<imu_msgs::msg::IMUDataArray>(topic_name_, 10);
         RCLCPP_WARN(this->get_logger(), "Publishers started, press 'q' to quit.");
         RCLCPP_WARN(this->get_logger(), "Press 'r' to start and 's' to stop recording.");
 
 
         // --------------------------------------------------------------------
         // TIMER (DEBUGGING)
-        time_start = rclcpp::Clock().now();
-        start_time = std::chrono::system_clock::now();
+        time_start_ = rclcpp::Clock().now();
+        start_time_ = std::chrono::system_clock::now();
     }
 
     XsensManager::~XsensManager() {
@@ -268,11 +280,11 @@ namespace xsens_mtw_manager
         {
             imu_msgs::msg::IMUDataArray imu_data_array_msg;
 
-            for (size_t i = 0; i < mtwCallbacks.size(); ++i)
+            for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
             {
-                if (mtwCallbacks[i]->dataAvailable())
+                if (mtwCallbacks_[i]->dataAvailable())
                 {
-                    XsDataPacket const* packet = mtwCallbacks[i]->getOldestPacket();
+                    XsDataPacket const* packet = mtwCallbacks_[i]->getOldestPacket();
 
                     if (packet->containsCalibratedData())
                     {
@@ -280,19 +292,19 @@ namespace xsens_mtw_manager
                         if (i == 0)
                         {
                             counter_++;
-                            if (counter_ == imu_rate) {
+                            if (counter_ == imu_rate_) {
                                 // check if loop time is 1.0s which equals to the desired imu update rate
-                                RCLCPP_INFO(this->get_logger(), "IMU 1 - LoopTimeCheck (should be 1.00s): %.2fs", elapsed_time.count() / 1000);
+                                RCLCPP_INFO(this->get_logger(), "IMU 1 - LoopTimeCheck (should be 1.00s): %.2fs", elapsed_time_.count() / 1000);
 
                                 // reset counter + elapsed_time
                                 counter_ = 0;
-                                elapsed_time = std::chrono::duration<double, std::milli>(0);
+                                elapsed_time_ = std::chrono::duration<double, std::milli>(0);
                             }
 
-                            end_time = std::chrono::system_clock::now();
-                            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-                            elapsed_time = elapsed_time + static_cast<decltype(elapsed_time)>(duration);
-                            start_time = std::chrono::system_clock::now();
+                            end_time_ = std::chrono::system_clock::now();
+                            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_ - start_time_).count();
+                            elapsed_time_ = elapsed_time_ + static_cast<decltype(elapsed_time_)>(duration);
+                            start_time_ = std::chrono::system_clock::now();
                         }
 
                         // VQF filter for quaternion orientation
@@ -313,38 +325,38 @@ namespace xsens_mtw_manager
                         mag[1] = packet->calibratedMagneticField().value(1);
                         mag[2] = packet->calibratedMagneticField().value(2);
 
-                        vqfContainer[i].second.update(gyr, acc, mag);
-                        vqfContainer[i].second.getQuat9D(quat);
+                        vqfContainer_[i].second.update(gyr, acc, mag);
+                        vqfContainer_[i].second.getQuat9D(quat);
 
                         // Update message data
-                        imu_data_msg[i].id = mtwDeviceIds[i].toString().toStdString();
-                        imu_data_msg[i].orientation.w = quat[0];
-                        imu_data_msg[i].orientation.x = quat[1];
-                        imu_data_msg[i].orientation.y = quat[2];
-                        imu_data_msg[i].orientation.z = quat[3];
-                        imu_data_msg[i].angular_velocity.x = gyr[0];		// [rad/s]
-                        imu_data_msg[i].angular_velocity.y = gyr[1];		// [rad/s]
-                        imu_data_msg[i].angular_velocity.z = gyr[2];		// [rad/s]
-                        imu_data_msg[i].linear_acceleration.x = acc[0];		// [m/s²]
-                        imu_data_msg[i].linear_acceleration.y = acc[1];		// [m/s²]
-                        imu_data_msg[i].linear_acceleration.z = acc[2];		// [m/s²]
-                        imu_data_msg[i].magnetic_field.x = mag[0];			// [uT]
-                        imu_data_msg[i].magnetic_field.y = mag[1];			// [uT]
-                        imu_data_msg[i].magnetic_field.z = mag[2];			// [uT]
+                        imu_data_msg_[i].id = mtwDeviceIds_[i].toString().toStdString();
+                        imu_data_msg_[i].orientation.w = quat[0];
+                        imu_data_msg_[i].orientation.x = quat[1];
+                        imu_data_msg_[i].orientation.y = quat[2];
+                        imu_data_msg_[i].orientation.z = quat[3];
+                        imu_data_msg_[i].angular_velocity.x = gyr[0];		// [rad/s]
+                        imu_data_msg_[i].angular_velocity.y = gyr[1];		// [rad/s]
+                        imu_data_msg_[i].angular_velocity.z = gyr[2];		// [rad/s]
+                        imu_data_msg_[i].linear_acceleration.x = acc[0];		// [m/s²]
+                        imu_data_msg_[i].linear_acceleration.y = acc[1];		// [m/s²]
+                        imu_data_msg_[i].linear_acceleration.z = acc[2];		// [m/s²]
+                        imu_data_msg_[i].magnetic_field.x = mag[0];			// [uT]
+                        imu_data_msg_[i].magnetic_field.y = mag[1];			// [uT]
+                        imu_data_msg_[i].magnetic_field.z = mag[2];			// [uT]
                     }
 
-                    mtwCallbacks[i]->deleteOldestPacket();
+                    mtwCallbacks_[i]->deleteOldestPacket();
                 }
 
                 // Using last known data if no new data is available
-                imu_data_array_msg.imu_data.push_back(imu_data_msg[i]);
+                imu_data_array_msg.imu_data.push_back(imu_data_msg_[i]);
             }
 
-            time_elapsed = (rclcpp::Clock().now() - time_start).seconds();
-            imu_data_array_msg.timestamp = time_elapsed;
-            imu_pub->publish(imu_data_array_msg);
+            time_elapsed_ = (rclcpp::Clock().now() - time_start_).seconds();
+            imu_data_array_msg.timestamp = time_elapsed_;
+            imu_pub_->publish(imu_data_array_msg);
 
-            if (isRecording) writeDataToFile();
+            if (isRecording_) writeDataToFile();
         }
         else
         {
@@ -352,15 +364,15 @@ namespace xsens_mtw_manager
             switch (keypressed)
             {
             case 'q':
-                if (isRecording) stopRecording();
+                if (isRecording_) stopRecording();
                 delete this;     // destructor call
                 break;
             case 'r':
-                if (isRecording) RCLCPP_INFO(this->get_logger(), "Already recording...");
+                if (isRecording_) RCLCPP_INFO(this->get_logger(), "Already recording...");
                 else startRecording();
                 break;
             case 's':
-                if (!isRecording) RCLCPP_INFO(this->get_logger(), "Currently not recording...");
+                if (!isRecording_) RCLCPP_INFO(this->get_logger(), "Currently not recording...");
                 else stopRecording();
                 break;
             default:
@@ -377,80 +389,116 @@ namespace xsens_mtw_manager
         std::ostringstream oss;
         oss << "xsens_imu_data_" << (now->tm_year + 1900) << "-" << (now->tm_mon + 1) << "-" << now->tm_mday << "_"
             << now->tm_hour << "-" << now->tm_min << "-" << now->tm_sec << ".txt";
-        file_name = oss.str();
+        file_name_ = oss.str();
     }
 
     void XsensManager::writeFileHeader()
     {
-        file << "time\t";
-        for (auto it = mtwDeviceIds.begin(); it != mtwDeviceIds.end(); ++it)
+        file_ << "time\t";
+        for (auto it = mtwDeviceIds_.begin(); it != mtwDeviceIds_.end(); ++it)
         {
-            file << it->toString().toStdString();
-            file << (it != std::prev(mtwDeviceIds.end()) ? "\t" : "\n");
+            file_ << it->toString().toStdString();
+            file_ << (it != std::prev(mtwDeviceIds_.end()) ? "\t" : "\n");
         }
     }
 
     void XsensManager::writeDataToFile()
     {
-        file << time_elapsed << "\t";
+        file_ << time_elapsed_ << "\t";
 
-        for (size_t i = 0; i < mtwCallbacks.size(); ++i)
+        for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
         {
-            file << imu_data_msg[i].orientation.w << ",";
-            file << imu_data_msg[i].orientation.x << ",";
-            file << imu_data_msg[i].orientation.y << ",";
-            file << imu_data_msg[i].orientation.z;
+            file_ << imu_data_msg_[i].orientation.w << ",";
+            file_ << imu_data_msg_[i].orientation.x << ",";
+            file_ << imu_data_msg_[i].orientation.y << ",";
+            file_ << imu_data_msg_[i].orientation.z;
 
-            if (i != mtwCallbacks.size() - 1) file << "\t";
-            else file << "\n";
+            if (i != mtwCallbacks_.size() - 1) file_ << "\t";
+            else file_ << "\n";
         }
     }
 
     void XsensManager::startRecording()
     {
         generateFileName();
-
-        if (!file.is_open())
+        if (!file_.is_open())
         {
-            file.open(file_name, std::ios::out);
-            if (!file) throw std::runtime_error("Unable to open file");
+            file_.open(file_name_, std::ios::out);
+            if (!file_) throw std::runtime_error("Unable to open file");
         }
-
         writeFileHeader();
 
-        isRecording = true;
+        if (resetTimerOnRecord_) time_start_ = rclcpp::Clock().now();
+
+        isRecording_ = true;
         RCLCPP_WARN(this->get_logger(), "STARTED RECORDING");
     }
 
     void XsensManager::stopRecording()
     {
-        if (file.is_open()) file.close();
+        if (file_.is_open()) file_.close();
 
-        isRecording = false;
+        isRecording_ = false;
         RCLCPP_WARN(this->get_logger(), "STOPPED RECORDING");
+    }
+
+    void XsensManager::startRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+    {
+        (void)request;
+
+        if (!isRecording_)
+        {
+            startRecording();
+            response->success = true;
+            response->message = "Recording started";
+        }
+        else
+        {
+            response->success = false;
+            response->message = "Already recording...";
+        }
+    }
+
+    void XsensManager::stopRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+    {
+        (void)request;
+
+        if (isRecording_)
+        {
+            stopRecording();
+            response->success = true;
+            response->message = "Recording stopped";
+        }
+        else
+        {
+            response->success = false;
+            response->message = "Currently not recording...";
+        }
     }
 
     void XsensManager::cleanupAndShutdown()
     {
-        // close file if open
-        if (file.is_open()) file.close();
+        // close file_ if open
+        if (file_.is_open()) file_.close();
 
         // cleanup
         try
         {
             RCLCPP_INFO(this->get_logger(), "Putting device into configuration mode...");
-            if (!wirelessMasterDevice->gotoConfig())
+            if (!wirelessMasterDevice_->gotoConfig())
             {
                 std::ostringstream error;
-                error << "Could not put device " << *wirelessMasterDevice << " into configuration mode.";
+                error << "Could not put device " << *wirelessMasterDevice_ << " into configuration mode.";
                 throw std::runtime_error(error.str());
             }
 
             RCLCPP_INFO(this->get_logger(), "Disabling radio channel...");
-            if (!wirelessMasterDevice->disableRadio())
+            if (!wirelessMasterDevice_->disableRadio())
             {
                 std::ostringstream error;
-                error << "Failed to disable radio channel: " << *wirelessMasterDevice;
+                error << "Failed to disable radio channel: " << *wirelessMasterDevice_;
                 throw std::runtime_error(error.str());
             }
         }
@@ -460,10 +508,10 @@ namespace xsens_mtw_manager
         }
 
         RCLCPP_INFO(this->get_logger(), "Closing XsControl...");
-        control->close();
+        control_->close();
 
         RCLCPP_INFO(this->get_logger(), "Deleting MTw callbacks...");
-        for (std::vector<MtwCallback*>::iterator i = mtwCallbacks.begin(); i != mtwCallbacks.end(); ++i)
+        for (std::vector<MtwCallback*>::iterator i = mtwCallbacks_.begin(); i != mtwCallbacks_.end(); ++i)
             delete (*i);
 
         RCLCPP_INFO(this->get_logger(), "Shutting down.");

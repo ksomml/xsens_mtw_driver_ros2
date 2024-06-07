@@ -12,6 +12,7 @@
 
 // ROS2
 #include "rclcpp/rclcpp.hpp"
+#include "std_srvs/srv/trigger.hpp"
 
 // Custom ROS 2 messages
 #include "imu_msgs/msg/imu_data.hpp"
@@ -47,6 +48,9 @@
 */
 
 
+using std::placeholders::_1;
+using std::placeholders::_2;
+
 namespace xsens_mtw_manager
 {
     class XsensManager : public rclcpp::Node
@@ -57,43 +61,48 @@ namespace xsens_mtw_manager
         void cleanupAndShutdown();
 
     private:
-        double ros2_rate;
-        int imu_rate;
-        int radio_channel;
-        bool isRecording;
-        bool isHeaderWritten;
-        double time_elapsed;
-        std::string topic_name;
-        std::string file_name;
-        std::ofstream file;
+        double ros2_rate_;
+        int imu_rate_;
+        int radio_channel_;
+        bool isRecording_;
+        bool isHeaderWritten_;
+        bool resetTimerOnRecord_;
+        double time_elapsed_;
+        std::string topic_name_;
+        std::string file_name_;
+        std::ofstream file_;
 
         // ROS2
-        rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr imu_pub;
-        rclcpp::Time time_start;
+        rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr imu_pub_;
+        rclcpp::Time time_start_;
         rclcpp::TimerBase::SharedPtr timer_;
 
+        // ROS2
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_;
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_service_;
+
         // XSens
-        size_t connectedMTWCount;
-        WirelessMasterCallback wirelessMasterCallback;
-        std::vector<MtwCallback*> mtwCallbacks;
-        XsControl* control;
-        XsPortInfoArray detectedDevices;
-        XsPortInfoArray::const_iterator wirelessMasterPort;
-        XsDevicePtr wirelessMasterDevice;
-        XsDeviceIdArray allDeviceIds;
-        XsDeviceIdArray mtwDeviceIds;
-        XsDevicePtrArray mtwDevices;
+        size_t connectedMTWCount_;
+        WirelessMasterCallback wirelessMasterCallback_;
+        std::vector<MtwCallback*> mtwCallbacks_;
+        XsControl* control_;
+        XsPortInfoArray detectedDevices_;
+        XsPortInfoArray::const_iterator wirelessMasterPort_;
+        XsDevicePtr wirelessMasterDevice_;
+        XsDeviceIdArray allDeviceIds_;
+        XsDeviceIdArray mtwDeviceIds_;
+        XsDevicePtrArray mtwDevices_;
 
         // VQF
-        std::vector<std::pair<int, VQF>> vqfContainer;
-        std::vector<imu_msgs::msg::IMUData> imu_data_msg;
+        std::vector<std::pair<int, VQF>> vqfContainer_;
+        std::vector<imu_msgs::msg::IMUData> imu_data_msg_;
 
         // Debugging
-        std::chrono::system_clock::time_point start_time;
-        std::chrono::system_clock::time_point end_time;
-        std::chrono::duration<double, std::milli> elapsed_time;
+        std::chrono::system_clock::time_point start_time_;
+        std::chrono::system_clock::time_point end_time_;
+        std::chrono::duration<double, std::milli> elapsed_time_;
         int counter_ = 0;
-        
+
 
         void timerCallback();
         void generateFileName();
@@ -101,6 +110,10 @@ namespace xsens_mtw_manager
         void writeDataToFile();
         void startRecording();
         void stopRecording();
+        void startRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+            std::shared_ptr<std_srvs::srv::Trigger::Response>);
+        void stopRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+            std::shared_ptr<std_srvs::srv::Trigger::Response>);
         void handleError(std::string error);
         void handleAbort(int);
     };
