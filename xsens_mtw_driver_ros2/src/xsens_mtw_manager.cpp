@@ -91,9 +91,7 @@ namespace xsens_mtw_manager
 
         std::ostringstream supportedUpdateRatesStr;
         for (XsIntArray::const_iterator itUpRate = supportedUpdateRates.begin(); itUpRate != supportedUpdateRates.end(); ++itUpRate)
-        {
             supportedUpdateRatesStr << *itUpRate << " ";
-        }
         RCLCPP_INFO_STREAM(this->get_logger(), "Supported update rates: " << supportedUpdateRatesStr.str(););
 
         const int newUpdateRate = findClosestUpdateRate(supportedUpdateRates, imu_rate);
@@ -147,7 +145,7 @@ namespace xsens_mtw_manager
             {
                 size_t nextCount = wirelessMasterCallback.getWirelessMTWs().size();
                 if (nextCount != connectedMTWCount)
-                {   
+                {
                     RCLCPP_INFO_STREAM(this->get_logger(), "Number of connected MTw's: " << (int)nextCount);
                     connectedMTWCount = nextCount;
                 }
@@ -157,19 +155,26 @@ namespace xsens_mtw_manager
             if (_kbhit())
             {
                 char keypressed = (char)_getch();
-                if (keypressed == 'y')
-                    waitForConnections = false;
-                if (keypressed == 'q')
+                switch (keypressed)
                 {
+                case 'y':
+                    if (connectedMTWCount == 0)
+                        RCLCPP_WARN(this->get_logger(), "No MTw's connected, press 'y' to start measurement or 'q' to quit.");
+                    else
+                        waitForConnections = false;
+                    break;
+                case 'q':
                     interruption = true;
                     waitForConnections = false;
+                    break;
+                default:
+                    break;
                 }
             }
 
         } while (waitForConnections && rclcpp::ok());
 
         if (interruption) delete this;      // destructor call
-
 
         // --------------------------------------------------------------------
         // DEVICE - MTW SETUP
@@ -289,7 +294,7 @@ namespace xsens_mtw_manager
                             elapsed_time = elapsed_time + static_cast<decltype(elapsed_time)>(duration);
                             start_time = std::chrono::system_clock::now();
                         }
-        
+
                         // VQF filter for quaternion orientation
                         vqf_real_t acc[3];
                         vqf_real_t gyr[3];
@@ -335,37 +340,102 @@ namespace xsens_mtw_manager
                 imu_data_array_msg.imu_data.push_back(imu_data_msg[i]);
             }
 
-            auto time_elapsed = (rclcpp::Clock().now() - time_start).seconds();
+            time_elapsed = (rclcpp::Clock().now() - time_start).seconds();
             imu_data_array_msg.timestamp = time_elapsed;
             imu_pub->publish(imu_data_array_msg);
+
+            if (isRecording) writeDataToFile();
         }
         else
         {
             char keypressed = (char)_getch();
-            if (keypressed == 'q') delete this;     // destructor call
-            if (keypressed == 'r')
+            switch (keypressed)
             {
+            case 'q':
+                if (isRecording) stopRecording();
+                delete this;     // destructor call
+                break;
+            case 'r':
                 if (isRecording) RCLCPP_INFO(this->get_logger(), "Already recording...");
-                else
-                {
-                    isRecording = true;
-                    RCLCPP_WARN(this->get_logger(), "STARTED RECORDING - TODO");
-                }
-            }
-            if (keypressed == 's')
-            {
-                if (!isRecording) RCLCPP_INFO(this->get_logger(), "Not recording...");
-                else
-                {
-                    isRecording = false;
-                    RCLCPP_WARN(this->get_logger(), "STOPPED RECORDING - TODO");
-                }
+                else startRecording();
+                break;
+            case 's':
+                if (!isRecording) RCLCPP_INFO(this->get_logger(), "Currently not recording...");
+                else stopRecording();
+                break;
+            default:
+                break;
             }
         }
     }
 
+    void XsensManager::generateFileName()
+    {
+        std::time_t t = std::time(0);
+        std::tm* now = std::localtime(&t);
+
+        std::ostringstream oss;
+        oss << "xsens_imu_data_" << (now->tm_year + 1900) << "-" << (now->tm_mon + 1) << "-" << now->tm_mday << "_"
+            << now->tm_hour << "-" << now->tm_min << "-" << now->tm_sec << ".txt";
+        file_name = oss.str();
+    }
+
+    void XsensManager::writeFileHeader()
+    {
+        file << "time\t";
+        for (auto it = mtwDeviceIds.begin(); it != mtwDeviceIds.end(); ++it)
+        {
+            file << it->toString().toStdString();
+            file << (it != std::prev(mtwDeviceIds.end()) ? "\t" : "\n");
+        }
+    }
+
+    void XsensManager::writeDataToFile()
+    {
+        file << time_elapsed << "\t";
+
+        for (size_t i = 0; i < mtwCallbacks.size(); ++i)
+        {
+            file << imu_data_msg[i].orientation.w << ",";
+            file << imu_data_msg[i].orientation.x << ",";
+            file << imu_data_msg[i].orientation.y << ",";
+            file << imu_data_msg[i].orientation.z;
+
+            if (i != mtwCallbacks.size() - 1) file << "\t";
+            else file << "\n";
+        }
+    }
+
+    void XsensManager::startRecording()
+    {
+        generateFileName();
+
+        if (!file.is_open())
+        {
+            file.open(file_name, std::ios::out);
+            if (!file) throw std::runtime_error("Unable to open file");
+        }
+
+        writeFileHeader();
+
+        isRecording = true;
+        RCLCPP_WARN(this->get_logger(), "STARTED RECORDING");
+    }
+
+    void XsensManager::stopRecording()
+    {
+        if (file.is_open()) file.close();
+
+        isRecording = false;
+        RCLCPP_WARN(this->get_logger(), "STOPPED RECORDING");
+    }
+
     void XsensManager::cleanupAndShutdown()
     {
+        // close file if open
+        if (file.is_open()) file.close();
+
+        // cleanup
         try
         {
             RCLCPP_INFO(this->get_logger(), "Putting device into configuration mode...");
@@ -394,9 +464,7 @@ namespace xsens_mtw_manager
 
         RCLCPP_INFO(this->get_logger(), "Deleting MTw callbacks...");
         for (std::vector<MtwCallback*>::iterator i = mtwCallbacks.begin(); i != mtwCallbacks.end(); ++i)
-        {
             delete (*i);
-        }
 
         RCLCPP_INFO(this->get_logger(), "Shutting down.");
         std::exit(EXIT_SUCCESS);
@@ -406,7 +474,6 @@ namespace xsens_mtw_manager
     {
         RCLCPP_ERROR(this->get_logger(), "%s", error.c_str());
     }
-
 
 
     /*! \brief Stream insertion operator overload for XsPortInfo */

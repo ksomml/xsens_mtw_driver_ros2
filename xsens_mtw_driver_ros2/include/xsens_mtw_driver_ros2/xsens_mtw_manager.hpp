@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 #include <sstream>
 #include <set>
 #include <list>
@@ -60,7 +61,11 @@ namespace xsens_mtw_manager
         int imu_rate;
         int radio_channel;
         bool isRecording;
+        bool isHeaderWritten;
+        double time_elapsed;
         std::string topic_name;
+        std::string file_name;
+        std::ofstream file;
 
         // ROS2
         rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr imu_pub;
@@ -91,6 +96,11 @@ namespace xsens_mtw_manager
         
 
         void timerCallback();
+        void generateFileName();
+        void writeFileHeader();
+        void writeDataToFile();
+        void startRecording();
+        void stopRecording();
         void handleError(std::string error);
         void handleAbort(int);
     };
