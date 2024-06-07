@@ -5,7 +5,7 @@
 ```
 This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
-<img src="images/xsens_mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
+<img src="xsens_mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
 
 
 ## TODO
