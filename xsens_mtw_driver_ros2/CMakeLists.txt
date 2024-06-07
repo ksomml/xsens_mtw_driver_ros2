@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(imu_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
@@ -42,6 +43,7 @@ target_link_libraries(xsens_mtw_manager
 ament_target_dependencies(xsens_mtw_manager
   rclcpp
   std_msgs
+  std_srvs
   geometry_msgs
   imu_msgs
 )
@@ -58,6 +60,7 @@ ament_target_dependencies(xsens_mtw_visualization
   tf2
   tf2_ros
   std_msgs
+  std_srvs
   geometry_msgs
   imu_msgs
 )
