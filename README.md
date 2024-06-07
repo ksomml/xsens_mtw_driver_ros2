@@ -5,7 +5,7 @@
 ```
 This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
-<img src="xsens_mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
+<img src="images/xsens_mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
 
 
 ## TODO
@@ -15,7 +15,7 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 - Implement params.yaml for configurable parameters
 - Remove debugging logs
 - Update README
-- Better Code (efficiency, follow coding conventions, )
+- Better Code (efficiency, follow coding conventions, etc.)
 
 
 ## Hardware
@@ -43,7 +43,7 @@ Tested with Ubuntu 22.04 and ROS2 Humble.
 
 - Orientation visualization in RViz for multiple IMUs at the same time
 - Data recording through button presses
-- (coming soon) Data recording through ros2 services
+- Data recording through ros2 services
 - (coming soon) Adjustable .yaml config
 
 
@@ -65,7 +65,7 @@ The `imu_mapping.yaml` is only used for a specific IMU setup. It will just move 
 
 ### Recording
 
-The time in `timestamp` is tracked from the start of the node. \
+The time in `timestamp` is tracked from the start of the node and will be reset to `0` when starting to record by default. This can be changed in the params.yaml in the future. \
 Currently the recording will only save the quaternions. \
 Currently the recorded data is saved in the same directy where the node is started.
 
