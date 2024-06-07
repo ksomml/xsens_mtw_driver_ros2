@@ -10,7 +10,7 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
 ## TODO
 
-- Implement services (get_ready(), status(), record(), etc.)
+- Implement more services (get_ready(), status(), etc.)
 - More fixes (correct shutdown/cleanup, etc.)
 - Implement params.yaml for configurable parameters
 - Remove debugging logs
@@ -62,6 +62,14 @@ The driver upsamples the IMU data and publishes all sensor data into the `/xsens
 Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used. \
 The `params.yaml` is currently not used, due to the [problem](#problems) listed below. \
 The `imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position. Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
+
+Services:
+
+- `/xsens_mtw_manager/start_recording`
+- `/xsens_mtw_manager/stop_recording`
+
+These services are using the `std_srvs/srv/trigger.hpp`.
+
 
 ### Recording
 
