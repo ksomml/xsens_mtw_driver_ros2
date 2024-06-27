@@ -1,6 +1,3 @@
-#include "rclcpp/rclcpp.hpp"
-#include "rclcpp/logging.hpp"
-
 #include "../include/xsens_mtw_driver_ros2/mastercallback.hpp"
 
 //----------------------------------------------------------------------

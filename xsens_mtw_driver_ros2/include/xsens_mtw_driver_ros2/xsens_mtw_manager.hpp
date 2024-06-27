@@ -1,14 +1,7 @@
 #pragma once
 
-#include <string>
-#include <stdexcept>
-#include <iostream>
-#include <iomanip>
+// Standard
 #include <fstream>
-#include <sstream>
-#include <set>
-#include <list>
-#include <utility>
 
 // ROS2
 #include "rclcpp/rclcpp.hpp"

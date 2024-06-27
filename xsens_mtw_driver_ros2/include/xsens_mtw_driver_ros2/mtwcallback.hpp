@@ -2,9 +2,6 @@
 #define MTWCALLBACK_H
 
 #include <rclcpp/rclcpp.hpp>
-#include <mutex>
-#include <condition_variable>
-#include <list>
 
 #include "../include/xsens/xsmutex.h"
 #include "../include/xsens/xsensdeviceapi/xscallback.h"

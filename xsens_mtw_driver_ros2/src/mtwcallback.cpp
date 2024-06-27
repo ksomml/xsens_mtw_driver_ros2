@@ -8,6 +8,7 @@
 // Handles onDataAvailable callbacks for MTW devices
 //----------------------------------------------------------------------
 
+
 MtwCallback::MtwCallback(int mtwIndex, XsDevice* device, size_t maxBufferSize)
 	:m_mtwIndex(mtwIndex)
 	,m_device(device)

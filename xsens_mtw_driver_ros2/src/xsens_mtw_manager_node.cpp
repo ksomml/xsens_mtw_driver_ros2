@@ -1,5 +1,3 @@
-#include <memory>
-
 #include "rclcpp/rclcpp.hpp"
 
 #include "../include/xsens_mtw_driver_ros2/xsens_mtw_manager.hpp"

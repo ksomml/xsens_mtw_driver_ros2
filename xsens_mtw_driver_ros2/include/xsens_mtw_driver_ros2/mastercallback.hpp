@@ -4,7 +4,6 @@
 #include <set>
 
 #include "../include/xsens/xsensdeviceapi.h"
-#include "../include/xsens/xstypes.h"
 #include "../include/xsens/xsmutex.h"
 
 
