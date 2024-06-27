@@ -11,7 +11,6 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 ## TODO
 
 - Implement more services (get_ready(), status(), etc.)
-- More fixes (correct shutdown/cleanup, etc.)
 - Implement params.yaml for configurable parameters
 - Remove debugging logs
 - Update README
