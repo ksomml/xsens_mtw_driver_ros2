@@ -39,7 +39,7 @@ namespace xsens_mtw_visualization
         }
         else
         {
-            RCLCPP_ERROR(this->get_logger(), "No IMU mapping received. Using simplified visualization.");
+            RCLCPP_WARN(this->get_logger(), "No IMU mapping received. Using simplified visualization.");
             xsens_imu_data_sub_ = this->create_subscription<imu_msgs::msg::IMUDataArray>("xsens_imu_data", 10, std::bind(&XsensVisualization::imu_data_callback_default, this, _1));
         }
 
