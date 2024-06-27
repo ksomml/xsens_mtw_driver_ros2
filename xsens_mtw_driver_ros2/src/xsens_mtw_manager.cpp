@@ -177,7 +177,7 @@ namespace xsens_mtw_manager
 
         } while (waitForConnections && rclcpp::ok());
 
-        if (interruption) delete this;      // destructor call
+        if (interruption || !rclcpp::ok()) delete this;      // destructor call
 
         // --------------------------------------------------------------------
         // DEVICE - MTW SETUP
@@ -243,6 +243,10 @@ namespace xsens_mtw_manager
             imu_data_msg_[i].magnetic_field.y = 0.0;
             imu_data_msg_[i].magnetic_field.z = 0.0;
         }
+
+        // --------------------------------------------------------------------
+        // CHECK IF CTRL+C WAS PRESSED
+        if (!rclcpp::ok()) delete this;      // destructor call
 
 
         // --------------------------------------------------------------------
