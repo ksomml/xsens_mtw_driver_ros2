@@ -39,9 +39,9 @@ Tested with Ubuntu 22.04 and ROS2 Humble.
 
 ## Features
 
-- Orientation visualization in RViz for multiple IMUs at the same time
 - Data recording through button presses
 - Data recording through ros2 services
+- Orientation visualization in RViz for multiple IMUs at the same time
 - (coming soon) Adjustable .yaml config
 
 

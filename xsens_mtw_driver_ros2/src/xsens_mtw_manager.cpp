@@ -44,7 +44,6 @@ namespace xsens_mtw_manager
 
         // --------------------------------------------------------------------
         // TIMER
-
         connectTimer_ = this->create_wall_timer(std::chrono::milliseconds(100),
             std::bind(&XSensManager::connectMTWsCallback, this));
 
