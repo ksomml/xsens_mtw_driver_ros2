@@ -18,7 +18,7 @@
 #include "findClosestUpdateRate.hpp"
 
 // XSens
-#include "../include/xsens/xsensdeviceapi.h" 	// The Xsens device API header 
+#include "../include/xsens/xsensdeviceapi.h" 	// The Xsens device API header
 #include "../include/xsens/xstypes.h"
 #include "../include/xsens/xsmutex.h"
 #include "../include/xsens/conio.h"				// For non ANSI _kbhit() and _getch()
@@ -46,31 +46,48 @@ using std::placeholders::_2;
 
 namespace xsens_mtw_manager
 {
-    class XsensManager : public rclcpp::Node
+    enum HardwareStatus {
+        ERROR = -2,
+        NO_CONNECTION = -1,
+        OK = 0,
+        READY = 1,
+        RECORDING = 2
+    };
+
+    class XSensManager : public rclcpp::Node
     {
     public:
-        XsensManager(const std::string& name);
-        virtual ~XsensManager();
+        XSensManager(const std::string& name);
+        virtual ~XSensManager();
         void cleanupAndShutdown();
 
     private:
+        HardwareStatus status_;
+        std::string file_name_;
+        std::ofstream file_;
+        bool waitForConnections_;
+        bool interruption_;
+        bool isHeaderWritten_;
+
+        // ROS2 Parameters
+        std::string topic_name_;
         double ros2_rate_;
         int imu_rate_;
         int radio_channel_;
-        bool isRecording_;
-        bool isHeaderWritten_;
         bool resetTimerOnRecord_;
-        double time_elapsed_;
-        std::string topic_name_;
-        std::string file_name_;
-        std::ofstream file_;
 
-        // ROS2
+        // ROS2 Callbacks
+        rclcpp::TimerBase::SharedPtr connectTimer_;
+        rclcpp::TimerBase::SharedPtr publishTimer_;
+
+        // ROS2 Publisher
         rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr imu_pub_;
         rclcpp::Time time_start_;
-        rclcpp::TimerBase::SharedPtr timer_;
+        double time_elapsed_;
 
-        // ROS2
+        // ROS2 Services
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr status_service_;
+        rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr get_ready_service_;
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_;
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_service_;
 
@@ -97,18 +114,25 @@ namespace xsens_mtw_manager
         int counter_ = 0;
 
 
-        void timerCallback();
+        void connectMTWsCallback();
+        void publishDataCallback();
+        void mtwSetup();
+        void vqfSetup();
+        void rosMessagesSetup();
         void generateFileName();
         void writeFileHeader();
         void writeDataToFile();
         void startRecording();
         void stopRecording();
+        void statusCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+            std::shared_ptr<std_srvs::srv::Trigger::Response>);
+        void getReadyCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+            std::shared_ptr<std_srvs::srv::Trigger::Response>);
         void startRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
             std::shared_ptr<std_srvs::srv::Trigger::Response>);
         void stopRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>,
             std::shared_ptr<std_srvs::srv::Trigger::Response>);
         void handleError(std::string error);
-        void handleAbort(int);
     };
 
 
