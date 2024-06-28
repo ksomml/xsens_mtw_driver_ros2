@@ -10,7 +10,6 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
 ## TODO
 
-- Implement more services (get_ready(), status(), etc.)
 - Implement params.yaml for configurable parameters
 - Remove debugging logs
 - Update README
@@ -48,22 +47,21 @@ Tested with Ubuntu 22.04 and ROS2 Humble.
 
 ## Usage
 
-`TODO`
-
-Commands:
-
-- `ros2 run xsens_mtw_driver_ros2 xsens_mtw_manager`
-- `ros2 run xsens_mtw_driver_ros2 xsens_mtw_visualization`
-- `ros2 launch xsens_mtw_driver_ros2 xsens_mtw_visualization.launch.py` (uses `config/imu_mapping.yaml`) [experimental]
-
-
 The driver upsamples the IMU data and publishes all sensor data into the `/xsens_imu_data` topic. \
 Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used. \
 The `params.yaml` is currently not used, due to the [problem](#problems) listed below. \
 The `imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position. Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
 
-Services:
+#### Commands:
 
+- `ros2 run xsens_mtw_driver_ros2 xsens_mtw_manager`
+- `ros2 run xsens_mtw_driver_ros2 xsens_mtw_visualization`
+- `ros2 launch xsens_mtw_driver_ros2 xsens_mtw_visualization.launch.py` (uses `config/imu_mapping.yaml`) [experimental]
+
+#### Custom Services:
+
+- `/xsens_mtw_manager/status`
+- `/xsens_mtw_manager/get_ready`
 - `/xsens_mtw_manager/start_recording`
 - `/xsens_mtw_manager/stop_recording`
 
@@ -89,8 +87,7 @@ Currently the recorded data is saved in the same directy where the node is start
 
 ## Problems
 
-- Starting the `xsens_mtw_manager` node through launch files will prevent keyinput readings from `conio.c`, meaning the `params.yaml` would need to be loaded set up by a separate parameter server node.
-- CTRL+C does not execute the node destructor, thus not freeing the master device
+- Starting the `xsens_mtw_manager` node through launch files will prevent keyinput readings from `conio.c`, meaning the `params.yaml` would need to be loaded by a separate parameter server node.
 
 
 ## Xsens MTw Awinda IMU Orientation
@@ -112,7 +109,7 @@ $ groups
 "username" adm cdrom sudo dip plugdev lpadmin sambashare
 ```
 
-Add yourself to the group: 
+Add yourself to the group:
 ```
 $ sudo usermod -G dialout -a $USER
 $ newgrp dialout
@@ -121,7 +118,7 @@ $ newgrp dialout
 More troubleshooting on the [xsens_mti_driver page](http://wiki.ros.org/xsens_mti_driver)
 
 
-### VSCode ROS2 Coding:
+### ROS2 Coding in VSCode ROS2:
 
 Make sure to add `/opt/ros/\<ros2version\>/include/**` to the `includePath` in your `c_cpp_properties.json` from your `.vscode` folder.
 
