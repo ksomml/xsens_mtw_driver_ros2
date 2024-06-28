@@ -465,7 +465,7 @@ namespace xsens_mtw_manager
         (void)request;
 
         response->success = true;
-        response->message = status_;
+        response->message = hardwareStatusToString(status_);
     }
 
     void XSensManager::getReadyCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
@@ -617,6 +617,17 @@ namespace xsens_mtw_manager
         RCLCPP_ERROR(this->get_logger(), "%s", error.c_str());
     }
 
+
+    std::string hardwareStatusToString(HardwareStatus status) {
+        switch (status) {
+        case ERROR: return "ERROR";
+        case NO_CONNECTION: return "NO_CONNECTION";
+        case OK: return "OK";
+        case READY: return "READY";
+        case RECORDING: return "RECORDING";
+        default: return "UNKNOWN_STATUS";
+        }
+    }
 
     /*! \brief Stream insertion operator overload for XsPortInfo */
     std::ostream& operator << (std::ostream& out, XsPortInfo const& p)

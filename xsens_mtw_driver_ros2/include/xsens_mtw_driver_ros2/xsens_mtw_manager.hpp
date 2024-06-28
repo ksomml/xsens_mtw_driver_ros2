@@ -135,6 +135,7 @@ namespace xsens_mtw_manager
         void handleError(std::string error);
     };
 
+    std::string hardwareStatusToString(HardwareStatus status);
 
     /*! \brief Stream insertion operator overload for XsPortInfo */
     std::ostream& operator << (std::ostream& out, XsPortInfo const& p);
