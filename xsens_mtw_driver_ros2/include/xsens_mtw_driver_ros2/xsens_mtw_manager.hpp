@@ -75,6 +75,7 @@ namespace xsens_mtw_manager
         int imu_rate_;
         int radio_channel_;
         bool resetTimerOnRecord_;
+        bool useMagnetometer_;
 
         // ROS2 Callbacks
         rclcpp::TimerBase::SharedPtr connectTimer_;

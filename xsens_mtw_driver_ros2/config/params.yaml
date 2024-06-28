@@ -9,7 +9,7 @@ xsens_mtw_manager:
     imu_rate: 100                   # see supported update rates [120, 100, 80, 60, 40]
     radio_channel: 25               # int (range: 11 to 25)
     reset_timer_on_record: true     # bool
-    # use_magnetormeter: true       # TODO
+    use_magnetormeter: false        # bool  (for quaternion orientation calculation)
     # record_accelerometer: true    # TODO
     # record_gyro: true             # TODO
     # record_magnetometer: true     # TODO

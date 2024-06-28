@@ -26,6 +26,9 @@ namespace xsens_mtw_manager
         this->declare_parameter("reset_timer_on_record", true);
         resetTimerOnRecord_ = this->get_parameter("reset_timer_on_record").as_bool();
 
+        this->declare_parameter("use_magnetometer", true);
+        useMagnetometer_ = this->get_parameter("use_magnetometer").as_bool();
+
         RCLCPP_INFO(this->get_logger(), "Parameters loaded.");
 
         // --------------------------------------------------------------------
@@ -296,8 +299,16 @@ namespace xsens_mtw_manager
                         mag[1] = packet->calibratedMagneticField().value(1);
                         mag[2] = packet->calibratedMagneticField().value(2);
 
-                        vqfContainer_[i].second.update(gyr, acc, mag);
-                        vqfContainer_[i].second.getQuat9D(quat);
+                        if (useMagnetometer_)
+                        {
+                            vqfContainer_[i].second.update(gyr, acc, mag);
+                            vqfContainer_[i].second.getQuat9D(quat);
+                        }
+                        else
+                        {
+                            vqfContainer_[i].second.update(gyr, acc);
+                            vqfContainer_[i].second.getQuat6D(quat);
+                        }
 
                         // Update message data
                         imu_data_msg_[i].id = mtwDeviceIds_[i].toString().toStdString();
