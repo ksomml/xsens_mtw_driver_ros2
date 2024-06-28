@@ -26,7 +26,7 @@ namespace xsens_mtw_manager
         this->declare_parameter("reset_timer_on_record", true);
         resetTimerOnRecord_ = this->get_parameter("reset_timer_on_record").as_bool();
 
-        this->declare_parameter("use_magnetometer", true);
+        this->declare_parameter("use_magnetometer", false);
         useMagnetometer_ = this->get_parameter("use_magnetometer").as_bool();
 
         RCLCPP_INFO(this->get_logger(), "Parameters loaded.");
