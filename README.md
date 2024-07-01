@@ -1,19 +1,8 @@
 # Xsens MTw Awinda driver for ROS2
-```
-                   !!!  WORK IN PROGRESS !!!
-        Any helpful pull requests are really appreciated!
-```
+
 This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
 <img src="xsens_mtw_awinda_system.jpg" alt="Image Description" width="250" height="250">
-
-
-## TODO
-
-- Implement params.yaml for configurable parameters
-- Remove debugging logs
-- Update README
-- Better Code (efficiency, follow coding conventions, etc.)
 
 
 ## Hardware
@@ -25,9 +14,9 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
 - The driver is developed upon the XDA 2022, with ROS2 on Ubuntu 22.04 LTS
     - XDA 2022 =/= public XDA 2022 (the public XDA 2022 only supports MTi devices)
+    - No need to download the XSens MT Software Suite for Linux separately
 - ISO C++17 Standard corrections have been applied to the XDA 2022 files
 - Instead of using the Xsens Quaternion, this driver uses the state-of-the-art quaternion filter [VQF](https://doi.org/10.1016/j.inffus.2022.10.014)
-
 
 ## Prerequisites
 
@@ -42,7 +31,7 @@ Tested with Ubuntu 22.04 and ROS2 Humble.
 - Data recording through button presses
 - Data recording through ros2 services
 - Orientation visualization in RViz for multiple IMUs at the same time
-- (coming soon) Adjustable .yaml config
+- (not available yet) Adjustable .yaml config
 
 
 ## Usage
@@ -85,11 +74,6 @@ Currently the recorded data is saved in the same directy where the node is start
 | 21 - 32  |            40 Hz        |
 
 
-## Problems
-
-- Starting the `xsens_mtw_manager` node through launch files will prevent keyinput readings from `conio.c`, meaning the `params.yaml` would need to be loaded by a separate parameter server node.
-
-
 ## Xsens MTw Awinda IMU Orientation
 
 <img src="xsens_mtw_awinda_imu.png" alt="Image Description" width="200" height="180">
@@ -120,7 +104,7 @@ More troubleshooting on the [xsens_mti_driver page](http://wiki.ros.org/xsens_mt
 
 ### ROS2 Coding in VSCode ROS2:
 
-Make sure to add `/opt/ros/\<ros2version\>/include/**` to the `includePath` in your `c_cpp_properties.json` from your `.vscode` folder.
+Make sure to add `/opt/ros/<ros2version>/include/**` to the `includePath` in your `c_cpp_properties.json` from your `.vscode` folder.
 
 
 ## Related links
@@ -129,5 +113,21 @@ Make sure to add `/opt/ros/\<ros2version\>/include/**` to the `includePath` in y
 - [VQF - A Versatile Quaternion-based Filter for IMU Orientation Estimation](https://vqf.readthedocs.io/)
 - [qleonardolp - xsens_mtw_driver-release](https://github.com/qleonardolp/xsens_mtw_driver-release)
 - [ChangcongWang - xsens_mtw_driver-release [fork] (ROS2 Migration with Xsens SDK 4.6)](https://github.com/ChangcongWang/xsens_mtw_driver-release)
-- ...
-- `TODO`
+
+
+## TODO
+
+- Implement params.yaml for configurable parameters
+- Remove debugging logs
+- Update README
+- Better Code (efficiency, follow coding conventions, etc.)
+
+
+## Problems
+
+- Starting the `xsens_mtw_manager` node through launch files will prevent keyinput readings from `conio.c`, meaning the `params.yaml` would need to be loaded by a separate parameter server node.
+
+```
+                   !!!  WORK IN PROGRESS !!!
+        Any helpful pull requests are really appreciated!
+```
