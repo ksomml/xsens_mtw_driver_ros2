@@ -7,7 +7,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
-// Custom ROS 2 messages
+// Custom ROS2 messages
 #include "imu_msgs/msg/imu_data.hpp"
 #include "imu_msgs/msg/imu_data_array.hpp"
 #include "imu_msgs/msg/quaternion.hpp"
