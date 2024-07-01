@@ -159,17 +159,17 @@ namespace xsens_mtw_manager
 
 
         // --------------------------------------------------------------------
-        // DEVICE STATUS
-        status_ = OK;
-
-
-        // --------------------------------------------------------------------
         // DEVICE - MTW SCAN
         RCLCPP_INFO(this->get_logger(), "Waiting for MTw's to wirelessly connect...");
         RCLCPP_WARN(this->get_logger(), "Press 'y' to start measurement or 'q' to quit.");
         connectedMTWCount_ = wirelessMasterCallback_.getWirelessMTWs().size();
 
-        // connectMTWsCallback will be called first and when prompted will start publishDataCallback
+
+        // --------------------------------------------------------------------
+        // DEVICE STATUS
+        status_ = OK;
+
+        // connectMTWsCallback() will be called first and when prompted will start publishDataCallback()
     }
 
     XSensManager::~XSensManager() {
@@ -215,6 +215,9 @@ namespace xsens_mtw_manager
             mtwSetup();
             vqfSetup();
             rosMessagesSetup();
+
+            // Check if ROS2 is still running
+            if (!rclcpp::ok()) delete this;
 
             // ROS2 Publisher
             imu_pub_ = this->create_publisher<imu_msgs::msg::IMUDataArray>(topic_name_, 10);
