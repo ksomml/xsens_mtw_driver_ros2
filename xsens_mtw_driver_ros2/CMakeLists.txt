@@ -23,7 +23,6 @@ link_directories(lib)
 # -------------------- xsens_mtw_manager --------------------
 add_executable(xsens_mtw_manager
   src/conio.c
-  src/findClosestUpdateRate.cpp
   src/mastercallback.cpp
   src/mtwcallback.cpp
   src/vqf.cpp
