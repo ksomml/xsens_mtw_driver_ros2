@@ -91,7 +91,7 @@ namespace xsens_mtw_manager
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_;
         rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_service_;
 
-        // XSens
+        // Xsens
         size_t connectedMTWCount_;
         WirelessMasterCallback wirelessMasterCallback_;
         std::vector<MtwCallback*> mtwCallbacks_;
