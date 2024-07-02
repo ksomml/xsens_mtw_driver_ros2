@@ -15,7 +15,6 @@
 // Driver
 #include "mastercallback.hpp"
 #include "mtwcallback.hpp"
-#include "findClosestUpdateRate.hpp"
 
 // XSens
 #include "../include/xsens/xsensdeviceapi.h" 	// The Xsens device API header
@@ -115,8 +114,11 @@ namespace xsens_mtw_manager
         int counter_ = 0;
 
 
+        int getMaxUpdateRate(int);
+        int findClosestUpdateRate(const XsIntArray&, const int);
         void connectMTWsCallback();
         void publishDataCallback();
+        void checkRateSupport();
         void mtwSetup();
         void vqfSetup();
         void rosMessagesSetup();

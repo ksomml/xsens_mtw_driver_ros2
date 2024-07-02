@@ -3,11 +3,11 @@
 namespace xsens_mtw_manager
 {
     XSensManager::XSensManager(const std::string& name)
-        : Node(name),
-        status_(NO_CONNECTION),
-        waitForConnections_(true),
-        interruption_(false),
-        isHeaderWritten_(false)
+        : Node(name)
+        , status_(NO_CONNECTION)
+        , waitForConnections_(true)
+        , interruption_(false)
+        , isHeaderWritten_(false)
     {
         // --------------------------------------------------------------------
         // ROS2 PARAMETERS
@@ -115,28 +115,6 @@ namespace xsens_mtw_manager
 
 
         // --------------------------------------------------------------------
-        // DEVICE - IMU UPDATE RATE
-        RCLCPP_INFO(this->get_logger(), "Getting the list of the supported update rates...");
-        const XsIntArray supportedUpdateRates = wirelessMasterDevice_->supportedUpdateRates();
-
-        std::ostringstream supportedUpdateRatesStr;
-        for (XsIntArray::const_iterator itUpRate = supportedUpdateRates.begin(); itUpRate != supportedUpdateRates.end(); ++itUpRate)
-            supportedUpdateRatesStr << *itUpRate << " ";
-        RCLCPP_INFO_STREAM(this->get_logger(), "Supported update rates: " << supportedUpdateRatesStr.str(););
-
-        const int newUpdateRate = findClosestUpdateRate(supportedUpdateRates, imu_rate_);
-        imu_rate_ = newUpdateRate;
-
-        RCLCPP_WARN_STREAM(this->get_logger(), "IMU update rate: " << newUpdateRate << " Hz...");
-        if (!wirelessMasterDevice_->setUpdateRate(newUpdateRate))
-        {
-            std::ostringstream error;
-            error << "Failed to set update rate: " << *wirelessMasterDevice_;
-            throw std::runtime_error(error.str());
-        }
-
-
-        // --------------------------------------------------------------------
         // DEVICE - MASTER RADIO CHANNEL
         RCLCPP_INFO(this->get_logger(), "Disabling radio channel if previously enabled...");
         if (wirelessMasterDevice_->isRadioEnabled())
@@ -212,6 +190,7 @@ namespace xsens_mtw_manager
         else if (!waitForConnections_ && !interruption_ && rclcpp::ok())
         {
             // Finish initialization
+            checkRateSupport();
             mtwSetup();
             vqfSetup();
             rosMessagesSetup();
@@ -251,7 +230,6 @@ namespace xsens_mtw_manager
 
     void XSensManager::publishDataCallback()
     {
-        // --------------------------------------------------------------------
         // MAIN LOOP
         if (!_kbhit())
         {
@@ -364,6 +342,100 @@ namespace xsens_mtw_manager
                 break;
             }
         }
+    }
+
+    void XSensManager::checkRateSupport()
+    {
+        /*
+        |   MTw | desiredUpdateRate (max) |
+        |-------|-------------------------|
+        |   1-5 |           120 Hz        |
+        |   6-9 |           100 Hz        |
+        |    10 |            80 Hz        |
+        | 11-20 |            60 Hz        |
+        | 21-32 |            40 Hz        |
+        */
+
+        // Check if desired imu rate is supported for connected imu's
+        int imuSize = static_cast<int>(wirelessMasterCallback_.getWirelessMTWs().size());
+        int maxUpdateRate = getMaxUpdateRate(imuSize);
+
+        if (maxUpdateRate == -1)
+        {
+            std::ostringstream error;
+            error << "Unsupported number of MTw's connected: " << imuSize;
+            throw std::runtime_error(error.str());
+        }
+        else {
+            RCLCPP_INFO(this->get_logger(), "Getting the list of the supported update rates...");
+            const XsIntArray supportedUpdateRates = wirelessMasterDevice_->supportedUpdateRates();
+
+            std::ostringstream supportedUpdateRatesStr;
+            for (XsIntArray::const_iterator itUpRate = supportedUpdateRates.begin(); itUpRate != supportedUpdateRates.end(); ++itUpRate)
+                supportedUpdateRatesStr << *itUpRate << " ";
+            RCLCPP_INFO_STREAM(this->get_logger(), "Supported update rates: " << supportedUpdateRatesStr.str(););
+
+            const int newUpdateRate = findClosestUpdateRate(supportedUpdateRates, imu_rate_);
+            imu_rate_ = newUpdateRate;
+
+            if (imu_rate_ > maxUpdateRate)
+            {
+                RCLCPP_WARN(this->get_logger(), "%d Hz is not supported for %d connected MTw's", imu_rate_, imuSize);
+                RCLCPP_WARN(this->get_logger(), "Lowering imu update rate to %d Hz...", maxUpdateRate);
+                imu_rate_ = maxUpdateRate;
+            }
+            else
+            {
+                RCLCPP_INFO(this->get_logger(), "%d Hz is supported for %d connected MTw's", imu_rate_, imuSize);
+            }
+        }
+
+        // Setting the update rate
+        RCLCPP_WARN_STREAM(this->get_logger(), "Setting IMU update rate: " << imu_rate_ << " Hz");
+        if (!wirelessMasterDevice_->setUpdateRate(imu_rate_))
+        {
+            std::ostringstream error;
+            error << "Failed to set update rate: " << *wirelessMasterDevice_;
+            throw std::runtime_error(error.str());
+        }
+    }
+
+    int XSensManager::getMaxUpdateRate(int imuSize) {
+        if (imuSize >= 1 && imuSize <= 5) return 120;
+        else if (imuSize >= 6 && imuSize <= 9) return 100;
+        else if (imuSize == 10) return 80;
+        else if (imuSize >= 11 && imuSize <= 20) return 60;
+        else if (imuSize >= 21 && imuSize <= 32) return 40;
+        else return -1;
+    }
+
+    int XSensManager::findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate)
+    {
+        if (supportedUpdateRates.empty())
+        {
+            std::ostringstream error;
+            error << "No supported update rates found.";
+            throw std::runtime_error(error.str());
+        }
+
+        if (supportedUpdateRates.size() == 1) return supportedUpdateRates[0];
+
+        int uRateDist = -1;
+        int closestUpdateRate = -1;
+        for (XsIntArray::const_iterator itUpRate = supportedUpdateRates.begin(); itUpRate != supportedUpdateRates.end(); ++itUpRate)
+        {
+            const int currDist = std::abs(*itUpRate - desiredUpdateRate);
+
+            if ((uRateDist == -1) || (currDist < uRateDist))
+            {
+                uRateDist = currDist;
+                closestUpdateRate = *itUpRate;
+            }
+        }
+
+        RCLCPP_INFO(this->get_logger(), "Closest supported update rate: %d Hz (desired: %d Hz)", closestUpdateRate, imu_rate_);
+
+        return closestUpdateRate;
     }
 
     void XSensManager::mtwSetup()
