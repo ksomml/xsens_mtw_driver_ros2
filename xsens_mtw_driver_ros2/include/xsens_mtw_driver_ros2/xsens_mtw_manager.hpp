@@ -53,11 +53,11 @@ namespace xsens_mtw_manager
         RECORDING = 2
     };
 
-    class XSensManager : public rclcpp::Node
+    class XsensManager : public rclcpp::Node
     {
     public:
-        XSensManager(const std::string& name);
-        virtual ~XSensManager();
+        XsensManager(const std::string& name);
+        virtual ~XsensManager();
         void cleanupAndShutdown();
 
     private:

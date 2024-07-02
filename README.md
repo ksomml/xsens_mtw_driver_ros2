@@ -14,9 +14,10 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 
 - The driver is developed upon the XDA 2022, with ROS2 on Ubuntu 22.04 LTS
     - XDA 2022 =/= public XDA 2022 (the public XDA 2022 only supports MTi devices)
-    - No need to download the XSens MT Software Suite for Linux separately
+    - No need to download the Xsens MT Software Suite for Linux separately
 - ISO C++17 Standard corrections have been applied to the XDA 2022 files
 - Instead of using the Xsens Quaternion, this driver uses the state-of-the-art quaternion filter [VQF](https://doi.org/10.1016/j.inffus.2022.10.014)
+
 
 ## Prerequisites
 
@@ -40,6 +41,7 @@ The driver upsamples the IMU data and publishes all sensor data into the `/xsens
 Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used. \
 The `params.yaml` is currently not used, due to the [problem](#problems) listed below. \
 The `imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position. Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
+
 
 #### Commands:
 
@@ -72,6 +74,7 @@ Currently the recorded data is saved in the same directy where the node is start
 |      10  |            80 Hz        |
 | 11 - 20  |            60 Hz        |
 | 21 - 32  |            40 Hz        |
+
 
 
 ## Xsens MTw Awinda IMU Orientation
@@ -119,7 +122,6 @@ Make sure to add `/opt/ros/<ros2version>/include/**` to the `includePath` in you
 
 - Implement params.yaml for configurable parameters
 - Remove debugging logs
-- Update README
 - Better Code (efficiency, follow coding conventions, etc.)
 
 

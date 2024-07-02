@@ -7,14 +7,14 @@ int main(int argc, char* argv[])
 {
     rclcpp::init(argc, argv);
 
-    std::shared_ptr<xsens_mtw_manager::XSensManager> node;
+    std::shared_ptr<xsens_mtw_manager::XsensManager> node;
 
     rclcpp::Context context;
-    context.add_pre_shutdown_callback(std::bind(&xsens_mtw_manager::XSensManager::cleanupAndShutdown, node));
+    context.add_pre_shutdown_callback(std::bind(&xsens_mtw_manager::XsensManager::cleanupAndShutdown, node));
 
     try
     {
-        node = std::make_shared<xsens_mtw_manager::XSensManager>("xsens_mtw_manager");
+        node = std::make_shared<xsens_mtw_manager::XsensManager>("xsens_mtw_manager");
         rclcpp::executors::MultiThreadedExecutor executor;
         executor.add_node(node);
         executor.spin();

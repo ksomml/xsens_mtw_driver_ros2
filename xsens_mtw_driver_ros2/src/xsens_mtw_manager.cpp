@@ -2,7 +2,7 @@
 
 namespace xsens_mtw_manager
 {
-    XSensManager::XSensManager(const std::string& name)
+    XsensManager::XsensManager(const std::string& name)
         : Node(name)
         , status_(NO_CONNECTION)
         , waitForConnections_(true)
@@ -34,13 +34,13 @@ namespace xsens_mtw_manager
         // --------------------------------------------------------------------
         // ROS2 SERVICES
         get_ready_service_ = this->create_service<std_srvs::srv::Trigger>(name + "/get_ready",
-            std::bind(&XSensManager::getReadyCallback, this, _1, _2));
+            std::bind(&XsensManager::getReadyCallback, this, _1, _2));
         status_service_ = this->create_service<std_srvs::srv::Trigger>(name + "/status",
-            std::bind(&XSensManager::statusCallback, this, _1, _2));
+            std::bind(&XsensManager::statusCallback, this, _1, _2));
         start_service_ = this->create_service<std_srvs::srv::Trigger>(name + "/start_recording",
-            std::bind(&XSensManager::startRecordingCallback, this, _1, _2));
+            std::bind(&XsensManager::startRecordingCallback, this, _1, _2));
         stop_service_ = this->create_service<std_srvs::srv::Trigger>(name + "/stop_recording",
-            std::bind(&XSensManager::stopRecordingCallback, this, _1, _2));
+            std::bind(&XsensManager::stopRecordingCallback, this, _1, _2));
 
         RCLCPP_INFO(this->get_logger(), "Services started.");
 
@@ -48,12 +48,12 @@ namespace xsens_mtw_manager
         // --------------------------------------------------------------------
         // TIMER
         connectTimer_ = this->create_wall_timer(std::chrono::milliseconds(100),
-            std::bind(&XSensManager::connectMTWsCallback, this));
+            std::bind(&XsensManager::connectMTWsCallback, this));
 
         double timestep = (1 / ros2_rate_) * 1000;
         auto rate_ms = std::chrono::milliseconds(int(timestep));
         publishTimer_ = this->create_wall_timer(rate_ms,
-            std::bind(&XSensManager::publishDataCallback, this));
+            std::bind(&XsensManager::publishDataCallback, this));
         publishTimer_->cancel();    // will be started when status switches to READY
 
         RCLCPP_WARN(this->get_logger(), "ROS2 publish rate: %.2f Hz", ros2_rate_);
@@ -150,11 +150,11 @@ namespace xsens_mtw_manager
         // connectMTWsCallback() will be called first and when prompted will start publishDataCallback()
     }
 
-    XSensManager::~XSensManager() {
+    XsensManager::~XsensManager() {
         cleanupAndShutdown();
     }
 
-    void XSensManager::connectMTWsCallback()
+    void XsensManager::connectMTWsCallback()
     {
         if (waitForConnections_ && rclcpp::ok())
         {
@@ -228,7 +228,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::publishDataCallback()
+    void XsensManager::publishDataCallback()
     {
         // MAIN LOOP
         if (!_kbhit())
@@ -344,7 +344,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::checkRateSupport()
+    void XsensManager::checkRateSupport()
     {
         /*
         |   MTw | desiredUpdateRate (max) |
@@ -400,7 +400,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    int XSensManager::getMaxUpdateRate(int imuSize) {
+    int XsensManager::getMaxUpdateRate(int imuSize) {
         if (imuSize >= 1 && imuSize <= 5) return 120;
         else if (imuSize >= 6 && imuSize <= 9) return 100;
         else if (imuSize == 10) return 80;
@@ -409,7 +409,7 @@ namespace xsens_mtw_manager
         else return -1;
     }
 
-    int XSensManager::findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate)
+    int XsensManager::findClosestUpdateRate(const XsIntArray& supportedUpdateRates, const int desiredUpdateRate)
     {
         if (supportedUpdateRates.empty())
         {
@@ -438,7 +438,7 @@ namespace xsens_mtw_manager
         return closestUpdateRate;
     }
 
-    void XSensManager::mtwSetup()
+    void XsensManager::mtwSetup()
     {
         RCLCPP_INFO(this->get_logger(), "Putting device into measurement mode...");
         if (!wirelessMasterDevice_->gotoMeasurement())
@@ -470,7 +470,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::vqfSetup()
+    void XsensManager::vqfSetup()
     {
         // VQF - Quaternion Filter (https://vqf.readthedocs.io/en/latest/)
         const double timer_period_ = 1.0 / static_cast<double>(imu_rate_);
@@ -484,7 +484,7 @@ namespace xsens_mtw_manager
         RCLCPP_INFO(this->get_logger(), "VQF timer period set: %.4fs (rate: %dHz)", timer_period_, imu_rate_);
     }
 
-    void XSensManager::rosMessagesSetup()
+    void XsensManager::rosMessagesSetup()
     {
         imu_data_msg_.resize(mtwCallbacks_.size());
 
@@ -507,7 +507,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::generateFileName()
+    void XsensManager::generateFileName()
     {
         std::time_t t = std::time(0);
         std::tm* now = std::localtime(&t);
@@ -518,7 +518,7 @@ namespace xsens_mtw_manager
         file_name_ = oss.str();
     }
 
-    void XSensManager::writeFileHeader()
+    void XsensManager::writeFileHeader()
     {
         file_ << "time\t";
         for (auto it = mtwDeviceIds_.begin(); it != mtwDeviceIds_.end(); ++it)
@@ -528,7 +528,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::writeDataToFile()
+    void XsensManager::writeDataToFile()
     {
         file_ << time_elapsed_ << "\t";
 
@@ -544,7 +544,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::statusCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    void XsensManager::statusCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
         (void)request;
@@ -553,7 +553,7 @@ namespace xsens_mtw_manager
         response->message = hardwareStatusToString(status_);
     }
 
-    void XSensManager::getReadyCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    void XsensManager::getReadyCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
         (void)request;
@@ -586,7 +586,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::startRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    void XsensManager::startRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
         (void)request;
@@ -609,7 +609,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::stopRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    void XsensManager::stopRecordingCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
         std::shared_ptr<std_srvs::srv::Trigger::Response> response)
     {
         (void)request;
@@ -632,7 +632,7 @@ namespace xsens_mtw_manager
         }
     }
 
-    void XSensManager::startRecording()
+    void XsensManager::startRecording()
     {
         generateFileName();
         if (!file_.is_open())
@@ -648,7 +648,7 @@ namespace xsens_mtw_manager
         RCLCPP_WARN(this->get_logger(), "STARTED RECORDING");
     }
 
-    void XSensManager::stopRecording()
+    void XsensManager::stopRecording()
     {
         if (file_.is_open()) file_.close();
 
@@ -656,7 +656,7 @@ namespace xsens_mtw_manager
         RCLCPP_WARN(this->get_logger(), "STOPPED RECORDING");
     }
 
-    void XSensManager::cleanupAndShutdown()
+    void XsensManager::cleanupAndShutdown()
     {
         RCLCPP_WARN(this->get_logger(), "Cleaning up and shutting down...");
         // close file_ if open
@@ -697,7 +697,7 @@ namespace xsens_mtw_manager
         std::exit(EXIT_SUCCESS);
     }
 
-    void XSensManager::handleError(std::string error)
+    void XsensManager::handleError(std::string error)
     {
         RCLCPP_ERROR(this->get_logger(), "%s", error.c_str());
     }
