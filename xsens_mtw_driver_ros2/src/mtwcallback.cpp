@@ -10,9 +10,9 @@
 
 
 MtwCallback::MtwCallback(int mtwIndex, XsDevice* device, size_t maxBufferSize)
-	:m_mtwIndex(mtwIndex)
-	,m_device(device)
-	,m_maxBufferSize(maxBufferSize)
+	: m_mtwIndex(mtwIndex)
+	, m_device(device)
+	, m_maxBufferSize(maxBufferSize)
 {}
 
 bool MtwCallback::dataAvailable() const
@@ -24,21 +24,21 @@ bool MtwCallback::dataAvailable() const
 	//return !m_rosBuffer.empty();
 }
 
-XsDataPacket const * MtwCallback::getOldestPacket() const 
+XsDataPacket const* MtwCallback::getOldestPacket() const
 {
 	XsMutexLocker lock(m_mutex);
-	XsDataPacket const * packet = &m_packetBuffer.front();
+	XsDataPacket const* packet = &m_packetBuffer.front();
 	return packet;
 }
 
 // Returns empty packet on timeout
-RosXsDataPacket MtwCallback::next(const std::chrono::milliseconds &timeout)
+RosXsDataPacket MtwCallback::next(const std::chrono::milliseconds& timeout)
 {
 	RosXsDataPacket packet;
 
 	std::unique_lock<std::mutex> lock(m_stdmutex);
 	//XsMutexLocker lock(m_mutex);
-	
+
 	if (m_condition.wait_for(lock, timeout, [&] { return !m_rosBuffer.empty(); }))
 	{
 		assert(!m_rosBuffer.empty());
@@ -61,7 +61,7 @@ int MtwCallback::getMtwIndex() const
 	return m_mtwIndex;
 }
 
-XsDevice const & MtwCallback::device() const
+XsDevice const& MtwCallback::device() const
 {
 	assert(m_device != 0);
 	return *m_device;
@@ -71,7 +71,7 @@ void MtwCallback::onLiveDataAvailable(XsDevice*, const XsDataPacket* packet)
 {
 	//std::unique_lock<std::mutex> lock(m_stdmutex);
 	//ros::Time now = ros::Time::now();
-	
+
 	XsMutexLocker lock(m_mutex);
 	// NOTE: Processing of packets should not be done in this thread.
 
