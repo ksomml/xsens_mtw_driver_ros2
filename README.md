@@ -63,7 +63,7 @@ These services are using the `std_srvs/srv/trigger.hpp`.
 
 ### Recording
 
-The time in `timestamp` is tracked from the start of the node and will be reset to `0` when starting to record by default. This can be changed in the params.yaml in the future. \
+The time in `timestamp` is tracked from the start of the node and will be reset to `0` when starting to record by default. This can be disabled in the `config/params.yaml`. \
 Currently the recording will only save the quaternions. \
 Currently the recorded data is saved in the same directy where the node is started.
 
