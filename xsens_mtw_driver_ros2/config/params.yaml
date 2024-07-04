@@ -10,9 +10,9 @@ xsens_mtw_manager:
     radio_channel: 25               # int (range: 11 to 25)
     reset_timer_on_record: true     # bool
     use_magnetormeter: false        # bool  (for quaternion orientation calculation)
+    # record_orientation: true      # TODO
     # record_accelerometer: true    # TODO
     # record_gyro: true             # TODO
     # record_magnetometer: true     # TODO
-    # record_orientation: true      # TODO
 
     # TODO: add more parameters
