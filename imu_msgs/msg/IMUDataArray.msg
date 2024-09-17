@@ -1,2 +1,2 @@
-float64 timestamp
+uint64 timestamp
 imu_msgs/IMUData[] imu_data

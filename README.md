@@ -29,15 +29,17 @@ Tested with Ubuntu 22.04 and ROS2 Humble.
 
 ## Features
 
-- Data recording
-- Node control through button presses or ros2 services
+- Data recording (Output format as .csv file with 3 headers)
+- Node control through button presses or ROS2 services
 - Orientation visualization in RViz for multiple IMUs at the same time
 - Custom .yaml config file
+- Optional turning off the IMUs when shutting down the node
 
 
 ## Usage
 
-The driver upsamples the IMU data and publishes all sensor data into the `/xsens_imu_data` topic. \
+The driver publishes all sensor data into the `/xsens_imu_data` topic. \
+If the ROS2 publish rate is higher than the IMU update rate, the driver will publish the same data until the next update. \
 Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used. \
 The `/config/params.yaml` can be used to easily set the desired parameters.
 The `/config/imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position. Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
@@ -55,8 +57,10 @@ The `/config/imu_mapping.yaml` is only used for a specific IMU setup. It will ju
 
 - `/xsens_mtw_manager/status`
 - `/xsens_mtw_manager/get_ready`
+- `/xsens_mtw_manager/imu_reset`
 - `/xsens_mtw_manager/start_recording`
 - `/xsens_mtw_manager/stop_recording`
+- `/xsens_mtw_manager/restart`
 
 These services are using the `std_srvs/srv/trigger.hpp`.
 
@@ -132,5 +136,3 @@ Make sure to add `/opt/ros/<ros2version>/include/**` to the `includePath` in you
 ## TODO
 
 - Implement more parameters for `/config/params.yaml`
-- Remove debugging logs
-- Better Code (efficiency, follow coding conventions, etc.)

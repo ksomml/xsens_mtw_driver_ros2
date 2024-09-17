@@ -9,9 +9,6 @@ int main(int argc, char* argv[])
 
     std::shared_ptr<xsens_mtw_manager::XsensManager> node;
 
-    rclcpp::Context context;
-    context.add_pre_shutdown_callback(std::bind(&xsens_mtw_manager::XsensManager::cleanupAndShutdown, node));
-
     try
     {
         node = std::make_shared<xsens_mtw_manager::XsensManager>("xsens_mtw_manager");
@@ -21,15 +18,16 @@ int main(int argc, char* argv[])
     }
     catch (const std::exception& e)
     {
-        std::cerr << "ERROR: " << e.what() << std::endl;
+        RCLCPP_ERROR(rclcpp::get_logger("xsens_mtw_manager"), "%s", e.what());
         std::cout << "****ABORT****" << std::endl;
     }
     catch (...)
     {
-        std::cout << "An unknown fatal error has occured. Aborting." << std::endl;
+        RCLCPP_ERROR(rclcpp::get_logger("xsens_mtw_manager"), "An unknown fatal error has occured.");
         std::cout << "****ABORT****" << std::endl;
     }
 
     rclcpp::shutdown();
+
     return 0;
 }

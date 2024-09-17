@@ -3,12 +3,12 @@
 
 /**:
   ros__parameters:
-    header_rate: 200.0
+    header_rate: 100.0
     imu_prefix: "00B483"
     imu_mapping:
       [
-        "84", "pelvis_imu",
         "A1", "torso_imu",
+        "84", "pelvis_imu",
         "9D", "femur_l_imu",
         "9C", "femur_r_imu",
         "A4", "tibia_l_imu",

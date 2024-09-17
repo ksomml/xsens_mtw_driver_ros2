@@ -5,10 +5,9 @@
 xsens_mtw_manager:
   ros__parameters:
     topic_name: "xsens_imu_data"    # string
-    ros2_rate: 200.0                # float
+    ros2_rate: 100.0                # float
     imu_rate: 100                   # see supported update rates [120, 100, 80, 60, 40]
     radio_channel: 25               # int (range: 11 to 25)
-    reset_timer_on_record: true     # bool
     use_magnetormeter: false        # bool  (for quaternion orientation calculation)
     # record_orientation: true      # TODO
     # record_accelerometer: true    # TODO
