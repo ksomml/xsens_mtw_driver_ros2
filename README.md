@@ -38,11 +38,7 @@ Tested with Ubuntu 22.04 and ROS2 Humble.
 
 ## Usage
 
-The driver publishes all sensor data into the `/xsens_imu_data` topic. \
-If the ROS2 publish rate is higher than the IMU update rate, the driver will publish the same data until the next update. \
-Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used. \
-The `/config/params.yaml` can be used to easily set the desired parameters.
-The `/config/imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position. Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
+The driver publishes all sensor data to the topic `/xsens_imu_data`. If the set ROS2 publish rate is higher than the IMU update rate, the driver will publish the same data until the next update. Custom messages `IMUData.msg`, `IMUDataArray.msg` and `Quaternion.msg` are used. The `/config/params.yaml` can be used to easily set the desired parameters. The `/config/imu_mapping.yaml` is only used for a specific IMU setup. It will just move the orientations in a more "visually correct" position (experimental). Using `xsens_mtw_visualization` without any config, will just publish the TFs of all IMUs next to each other for visibility.
 
 
 #### Commands:
