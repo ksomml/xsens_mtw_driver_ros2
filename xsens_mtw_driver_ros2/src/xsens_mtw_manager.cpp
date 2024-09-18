@@ -27,7 +27,7 @@ XsensManager::XsensManager(const std::string & name)
     this->declare_parameter("use_magnetometer", false);
     useMagnetometer_ = this->get_parameter("use_magnetometer").as_bool();
 
-    RCLCPP_INFO(this->get_logger(), "Parameters loaded.");
+    RCLCPP_INFO(this->get_logger(), "Parameters loaded");
 
 
     // --------------------------------------------------------------------
@@ -52,7 +52,7 @@ XsensManager::XsensManager(const std::string & name)
     restart_service_ = this->create_service<stvs::Trigger>(name + "/restart",
         std::bind(&XsensManager::restartDriverCallback, this, _1, _2));
 
-    RCLCPP_INFO(this->get_logger(), "Services started.");
+    RCLCPP_INFO(this->get_logger(), "Services started");
 
 
     // --------------------------------------------------------------------
@@ -138,7 +138,7 @@ void XsensManager::initialMasterSetup()
     }
     RCLCPP_INFO(this->get_logger(), "XsDevice instance for master created");
 
-    RCLCPP_INFO(this->get_logger(), "Setting config mode...");
+    RCLCPP_INFO(this->get_logger(), "Putting master into measurement mode...");
     if (!wirelessMasterDevice_->gotoConfig())
     {
         std::ostringstream error;
@@ -544,9 +544,7 @@ int XsensManager::findClosestUpdateRate(
 
 void XsensManager::mtwSetup()
 {
-    RCLCPP_INFO(this->get_logger(), "Putting device into measurement mode...");
-
-
+    RCLCPP_INFO(this->get_logger(), "Putting master into measurement mode...");
     if (!wirelessMasterDevice_->gotoMeasurement())
     {
         std::ostringstream error;
@@ -568,7 +566,6 @@ void XsensManager::mtwSetup()
         if (mtwDevice != 0) mtwDevices_.push_back(mtwDevice);
         else throw std::runtime_error("Failed to create an MTw XsDevice instance");
     }
-
 
     RCLCPP_INFO(this->get_logger(), "Attaching callback handlers to MTw's...");
     mtwCallbacks_.resize(mtwDevices_.size());
@@ -608,15 +605,15 @@ void XsensManager::vqfSetup()
 
     RCLCPP_INFO(
         this->get_logger(),
-        "VQF timer period set: %.4fs (rate: %dHz)",
+        "VQF timer period: %.4fs (rate: %dHz)",
         timer_period_,
         imu_rate_
     );
 
     if (useMagnetometer_)
-        RCLCPP_INFO(this->get_logger(), "Magnetometer enabled for VQF filter.");
+        RCLCPP_INFO(this->get_logger(), "VQF: Magnetometer enabled");
     else
-        RCLCPP_INFO(this->get_logger(), "Magnetometer disabled for VQF filter.");
+        RCLCPP_INFO(this->get_logger(), "VQF: Magnetometer disabled");
 }
 
 void XsensManager::rosMessagesSetup()
@@ -656,11 +653,11 @@ void XsensManager::generateFileName()
 
 void XsensManager::writeFileHeader()
 {
-    // first line
+    // First line
     file_ << "ros,";
     for (auto it = mtwDeviceIds_.begin(); it != mtwDeviceIds_.end(); ++it)
     {
-        // write device id 13 times to match the number of needed columns per device
+        // Write device id 13 times to match the number of needed columns per device
         for (int i = 0; i < 13; ++i)
         {
             file_ << it->toString().toStdString();
@@ -670,7 +667,7 @@ void XsensManager::writeFileHeader()
         file_ << (it != std::prev(mtwDeviceIds_.end()) ? "," : "\n");
     }
 
-    // second line
+    // Second line
     file_ << "timestamp,";
     for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
     {
@@ -683,7 +680,7 @@ void XsensManager::writeFileHeader()
         else file_ << "\n";
     }
 
-    // third line
+    // Third line
     file_ << "nan,";
     for (size_t i = 0; i < mtwCallbacks_.size(); ++i)
     {
@@ -931,10 +928,10 @@ void XsensManager::cleanupAndShutdown()
 {
     RCLCPP_INFO(this->get_logger(), "Cleaning up and shutting down...");
 
-    // close file_ if open
+    // Close file_ if open
     closeFile();
 
-    // cleanup VQF containers
+    // Cleanup VQF containers
     if (vqfContainer_.size() > 0)
     {
         RCLCPP_INFO(this->get_logger(), "Deleting VQF containers...");
@@ -947,7 +944,7 @@ void XsensManager::cleanupAndShutdown()
         vqfContainer_.clear();
     }
 
-    // cleanup Xsens API
+    // Cleanup Xsens API
     RCLCPP_INFO(this->get_logger(), "Putting device into configuration mode...");
     if (!wirelessMasterDevice_->gotoConfig())
     {
@@ -968,22 +965,40 @@ void XsensManager::cleanupAndShutdown()
             if (_kbhit())
             {
                 char keypressed = static_cast<char>(_getch());
+                std::ostringstream mtw_success, mtw_fail;
+
                 switch (keypressed)
                 {
                 case 'y':
-                    if (!wirelessMasterDevice_->setTransportMode(true))
+                    RCLCPP_INFO(this->get_logger(), "Turning off MTw's...");
+                    interruption = true;
+                    for (int i = 0; i < static_cast<int>(mtwDevices_.size()); ++i)
+                    {
+                        if (!mtwDevices_[i]->setTransportMode(true))
+                        {
+                            mtw_fail << mtwDevices_[i]->deviceId().toString().toStdString() << " ";
+                            RCLCPP_INFO_STREAM(
+                                this->get_logger(),
+                                "Waiting 15s due to Xsens transport mode cooldown..."
+                            );
+                            XsTime::msleep(15000);
+                        }
+                        else
+                            mtw_success << mtwDevices_[i]->deviceId().toString().toStdString() << " ";
+                    }
+                    if (mtw_fail.str().empty())
+                        RCLCPP_INFO(this->get_logger(), "All MTw's turned off successfully");
+                    else
                     {
                         RCLCPP_INFO_STREAM(
                             this->get_logger(),
-                            "Failed to turn off MTw's."
+                            "MTw's turned off: " << mtw_success.str()
                         );
-                        break;
+                        RCLCPP_INFO_STREAM(
+                            this->get_logger(),
+                            "Failed to turn off MTw's: " << mtw_fail.str()
+                        );
                     }
-                    RCLCPP_INFO_STREAM(
-                        this->get_logger(),
-                        "MTw's turned off." << *wirelessMasterDevice_
-                    );
-                    interruption = true;
                     break;
                 case 'n':
                     interruption = true;
@@ -1020,7 +1035,7 @@ void XsensManager::cleanupAndShutdown()
 
     if (restart_requested_)
     {
-        // possible memory leak?
+        // Possible memory leak
         wirelessMasterDevice_ = nullptr;
         wirelessMasterPort_ = detectedDevices_.end();
         detectedDevices_.clear();
@@ -1028,7 +1043,7 @@ void XsensManager::cleanupAndShutdown()
         mtwDeviceIds_.clear();
         mtwDevices_.clear();
     }
-    else RCLCPP_FATAL(this->get_logger(), "Exited successfully.");
+    else RCLCPP_FATAL(this->get_logger(), "Exited successfully");
 }
 
 void XsensManager::handleError(std::string error)
