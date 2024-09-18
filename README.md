@@ -29,11 +29,12 @@ Tested with Ubuntu 22.04 and ROS2 Humble.
 
 ## Features
 
-- Data recording (Output format as .csv file with 3 headers)
-- Node control through button presses or ROS2 services
-- Orientation visualization in RViz for multiple IMUs at the same time
-- Custom .yaml config file
-- Optional turning off the IMUs when shutting down the node
+- Data recording (output format as a .csv file with three headers)
+- Node control via button presses or ROS2 services
+- IMU timeout warning
+- Custom configuration using a .yaml file
+- Option to disable IMUs when shutting down the node
+- Simultaneous orientation visualization of multiple IMUs in RViz
 
 
 ## Usage
