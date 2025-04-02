@@ -306,11 +306,10 @@ void XsensManager::publishDataCallback()
 
             if (packet->containsCalibratedData())
             {
-                // VQF filter for quaternion orientation
+                // Extract calibrated data from packet
                 vqf_real_t acc[3];
                 vqf_real_t gyr[3];
                 vqf_real_t mag[3];
-                vqf_real_t quat[4];
 
                 acc[0] = packet->calibratedAcceleration().value(0);
                 acc[1] = packet->calibratedAcceleration().value(1);
@@ -324,24 +323,8 @@ void XsensManager::publishDataCallback()
                 mag[1] = packet->calibratedMagneticField().value(1);
                 mag[2] = packet->calibratedMagneticField().value(2);
 
-                // Perform a filter update step for one sample to get the new orientation
-                if (!m_useMagnetometer)
-                {
-                    m_vqfFilters[i].update(gyr, acc);
-                    m_vqfFilters[i].getQuat6D(quat);
-                }
-                else
-                {
-                    m_vqfFilters[i].update(gyr, acc, mag);
-                    m_vqfFilters[i].getQuat9D(quat);
-                }
-
-                // Update message data
+                // Update message data with new sensor readings
                 m_imuDataMsg[i].id = m_mtwDeviceIds[i].toString().toStdString();
-                m_imuDataMsg[i].orientation.w = quat[0];
-                m_imuDataMsg[i].orientation.x = quat[1];
-                m_imuDataMsg[i].orientation.y = quat[2];
-                m_imuDataMsg[i].orientation.z = quat[3];
                 m_imuDataMsg[i].angular_velocity.x = gyr[0];  // [rad/s]
                 m_imuDataMsg[i].angular_velocity.y = gyr[1];  // [rad/s]
                 m_imuDataMsg[i].angular_velocity.z = gyr[2];  // [rad/s]
@@ -359,6 +342,42 @@ void XsensManager::publishDataCallback()
             m_mtwCallbacks[i]->deleteOldestPacket();
         }
         else m_dataTracker[i]++;
+
+        // Always update VQF filter with the latest data (either new or last known)
+        vqf_real_t quat[4];
+        vqf_real_t acc[3] = {
+            m_imuDataMsg[i].linear_acceleration.x,
+            m_imuDataMsg[i].linear_acceleration.y,
+            m_imuDataMsg[i].linear_acceleration.z
+        };
+        vqf_real_t gyr[3] = {
+            m_imuDataMsg[i].angular_velocity.x,
+            m_imuDataMsg[i].angular_velocity.y,
+            m_imuDataMsg[i].angular_velocity.z
+        };
+        vqf_real_t mag[3] = {
+            m_imuDataMsg[i].magnetic_field.x,
+            m_imuDataMsg[i].magnetic_field.y,
+            m_imuDataMsg[i].magnetic_field.z
+        };
+
+        // Perform a filter update step for one sample to get the new orientation
+        if (!m_useMagnetometer)
+        {
+            m_vqfFilters[i].update(gyr, acc);
+            m_vqfFilters[i].getQuat6D(quat);
+        }
+        else
+        {
+            m_vqfFilters[i].update(gyr, acc, mag);
+            m_vqfFilters[i].getQuat9D(quat);
+        }
+
+        // Update orientation quaternion in message
+        m_imuDataMsg[i].orientation.w = quat[0];
+        m_imuDataMsg[i].orientation.x = quat[1];
+        m_imuDataMsg[i].orientation.y = quat[2];
+        m_imuDataMsg[i].orientation.z = quat[3];
 
         // Using last known data if no new data is available
         imu_data_array_msg.imu_data.push_back(m_imuDataMsg[i]);
