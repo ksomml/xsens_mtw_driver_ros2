@@ -13,7 +13,7 @@ XsensManager::XsensManager(const std::string & name)
 {
     // --------------------------------------------------------------------
     // ROS2 PARAMETERS
-    this->declare_parameter("one_topic_per_imu", true);
+    this->declare_parameter("one_topic_per_imu", false);
     m_oneTopicPerImu = this->get_parameter("one_topic_per_imu").as_bool();
 
     this->declare_parameter("topic_name", "xsens_imu_data");
