@@ -61,9 +61,9 @@ source install/setup.bash
 
 ### Xsens MTw Manager
 
-By default, the Xsens MTw Manager node publishes a separate ROS 2 topic named `/xsens_imu_data_<IMU ID>` for each IMU sensor. The topic name, an optional combined topic for all IMU sensors, and other parameters can be configured in the `/config/params.yaml` file or at the top of the `xsens_mtw_manager.cpp` file. See [Custom parameters](#custom-parameters) for more information.
+By default, the Xsens MTw Manager node publishes all sensor data into the `/xsens_imu_data` ROS2 topic. The topic name, an option to enable one topic per IMU sensor, and other parameters can be configured in the `/config/params.yaml` or at the top of the `xsens_mtw_manager.cpp`. See [Custom parameters](#custom-parameters) for more information.
 
-ROS2 timestamps are used to record the time at which data is received. If a data packet is lost, the last available data will be used. The recorded data is saved in a `.csv` file with multi-indexing (header of 3). This file will include the ROS2 timestamps with the received MTw orientation, angular velocity, linear acceleration and the magnetic field. The recorded data is saved in the same directory where the node is started.
+ROS2 timestamps are used to record the time at which data is received. If a data packet is lost, the last available data will be used. The recorded data is saved in a `.csv` file with multi-indexing (header of 3). This file will include the ROS2 timestamps with the received MTw orientation, angular velocity, linear acceleration and the magnetic field. The recorded data is saved in the same directory where the node is started. Currently, setting `one_topic_per_imu` to `true` will cause the recording feature of the node to apply only the latest timestamp, as if data from all IMUs were published simultaneously.
 
 ---
 
