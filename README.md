@@ -142,7 +142,7 @@ ros2 run xsens_mtw_driver xsens_mtw_manager --ros-args --params-file </path/to/p
 ### Xsens MTw Visualization
 
 The `xsens_mtw_visualization` node publishes the IMU orientations in the `/tf` ROS2 topic for visualization purposes in RViz. Make sure to
-have the TF display added in RViz. Also see [Xsens MTw Awinda IMU Coordinate System](#xsens-mtw-awinda-imu-coordinate-system) to know which way the IMUs are oriented.
+have the TF display added in RViz. Also see [Xsens MTw Awinda IMU Coordinate System](#xsens-mtw-coordinate-system) to know which way the IMUs are oriented.
 
 Using `xsens_mtw_visualization` without any config, will publish the TFs of all IMUs next to each other. Using the launch file will load `/config/imu_mapping.yaml`. This is only used for a specific IMU setup. The idea behind it is to move the IMU orientations into a more visually comprehensible position. The amount of IMUs can be adjusted in the `.yaml` file and the positions inside the `xsens_mtw_visualization.cpp` file.
 
