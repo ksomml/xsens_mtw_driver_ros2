@@ -86,6 +86,7 @@ private:
 
     // ROS2 Parameters
     std::string m_topicName;
+    bool m_oneTopicPerImu;
     int m_ros2Rate;
     int m_imuRate;
     int m_radioChannel;
@@ -98,7 +99,7 @@ private:
 
     // ROS2 Publisher
     rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuPublisher;
-    std::vector<std::shared_ptr<rclcpp::Publisher<imu_msgs::msg::IMUDataArray, std::allocator<void>>>> m_imuPublishers;
+    std::vector<std::shared_ptr<rclcpp::Publisher<imu_msgs::msg::IMUDataSingle, std::allocator<void>>>> m_imuPublishers;
 
     int64_t m_timestamp;
 
