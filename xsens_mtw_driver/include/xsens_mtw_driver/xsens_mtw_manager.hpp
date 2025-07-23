@@ -98,6 +98,8 @@ private:
 
     // ROS2 Publisher
     rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuPublisher;
+    std::vector<std::shared_ptr<rclcpp::Publisher<imu_msgs::msg::IMUDataArray, std::allocator<void>>>> m_imuPublishers;
+
     int64_t m_timestamp;
 
     // ROS2 Services

@@ -1,6 +1,7 @@
 xsens_mtw_manager:
   ros__parameters:
-    topic_name: "xsens_imu_data"    # string
+    one_topic_per_imu: true         # bool    One topic for all the IMUs or one topic per IMU
+    topic_name: "xsens_imu_data"    # string  Topic name for the mono topic or prefix of the topic name for one topic per IMU
     ros2_rate: 100                  # int     ROS2 data publish rate
     imu_rate: 100                   # int     see supported update rates [120, 100, 80, 60, 40]
     imu_reset_on_record: true       # bool    reset IMU orientation on record start

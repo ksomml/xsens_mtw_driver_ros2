@@ -13,6 +13,9 @@ XsensManager::XsensManager(const std::string & name)
 {
     // --------------------------------------------------------------------
     // ROS2 PARAMETERS
+    this->declare_parameter("one_topic_per_imu", true);
+    m_imuResetOnRecord = this->get_parameter("one_topic_per_imu").as_bool();
+
     this->declare_parameter("topic_name", "xsens_imu_data");
     m_topicName = this->get_parameter("topic_name").as_string();
 
@@ -278,7 +281,18 @@ void XsensManager::completeInitialization()
     }
 
     // ROS2 Publisher
-    m_imuPublisher = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_topicName, 10);
+    if (this->get_parameter("one_topic_per_imu").as_bool()){
+        // One-topic-per-imu
+        for (int i = 0; i < m_connectedMTWCount; ++i)
+		{
+			std::string mtwID = m_mtwDeviceIds[i].toString().toStdString();
+			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_topicName + mtwID, 10);
+			m_imuPublishers.push_back(imu_pub);
+		}
+    } else {
+        // One-topic-for-all
+        m_imuPublisher = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_topicName, 10);
+    }
 
     RCLCPP_WARN(this->get_logger(), "Publishers started, press 'q' to quit");
     RCLCPP_WARN(this->get_logger(), "Press 'r' to start and 's' to stop recording");
@@ -289,8 +303,12 @@ void XsensManager::completeInitialization()
     // Reset restart flag
     m_restartRequested = false;
 
-    // Start publish timer
-    m_publishTimer->reset();
+    if (this->get_parameter("one_topic_per_imu").as_bool()){
+        
+    } else {
+        // One-topic-for-all
+        m_publishTimer->reset();
+    }
 }
 
 // Main loop to publish IMU data collected from the Xsens MTw's (depends on m_publishTimer)
