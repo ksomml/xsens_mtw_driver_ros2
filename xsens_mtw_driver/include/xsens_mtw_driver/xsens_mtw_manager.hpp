@@ -87,7 +87,7 @@ private:
     bool m_isHeaderWritten;
 
     // ROS2 Parameters
-    std::string m_topicName;
+    std::string m_mtwTopicName;
     bool m_oneTopicPerImu;
     int m_ros2Rate;
     int m_imuRate;
@@ -101,7 +101,7 @@ private:
 
     // ROS2 Publisher
     rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuPublisher;
-    std::vector<std::shared_ptr<rclcpp::Publisher<imu_msgs::msg::IMUDataSingle, std::allocator<void>>>> m_imuPublishers;
+    std::vector<rclcpp::Publisher<imu_msgs::msg::IMUDataSingle>::SharedPtr> m_imuPublishers;
 
     // ROS2 Services
     rclcpp::Service<xsrvs::Trigger>::SharedPtr m_statusService;
