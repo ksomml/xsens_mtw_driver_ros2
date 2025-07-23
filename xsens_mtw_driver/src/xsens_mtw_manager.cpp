@@ -286,7 +286,7 @@ void XsensManager::completeInitialization()
         for (size_t i = 0; i < m_connectedMTWCount; ++i)
         {
             std::string mtwID = m_mtwDeviceIds[i].toString().toStdString();
-			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataSingle>(m_topicName + mtwID, 10);
+			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataSingle>(m_topicName + "_" + mtwID, 10);
 			m_imuPublishers.push_back(imu_pub);
 		}
     } else {
