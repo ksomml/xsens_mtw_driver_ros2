@@ -14,6 +14,7 @@
 // Custom ROS2 messages
 #include "imu_msgs/msg/imu_data.hpp"
 #include "imu_msgs/msg/imu_data_array.hpp"
+#include "imu_msgs/msg/imu_data_single.hpp"
 #include "imu_msgs/msg/quaternion.hpp"
 
 // Custom ROS2
@@ -80,12 +81,14 @@ private:
     std::ofstream m_file;
     std::vector<int> m_dataTracker;
     int m_maxDataSkip;
+    int64_t m_timestamp;
     bool m_waitForConnections;
     bool m_keyInterrupt;
     bool m_isHeaderWritten;
 
     // ROS2 Parameters
     std::string m_topicName;
+    bool m_oneTopicPerImu;
     int m_ros2Rate;
     int m_imuRate;
     int m_radioChannel;
@@ -98,7 +101,7 @@ private:
 
     // ROS2 Publisher
     rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuPublisher;
-    int64_t m_timestamp;
+    std::vector<std::shared_ptr<rclcpp::Publisher<imu_msgs::msg::IMUDataSingle, std::allocator<void>>>> m_imuPublishers;
 
     // ROS2 Services
     rclcpp::Service<xsrvs::Trigger>::SharedPtr m_statusService;

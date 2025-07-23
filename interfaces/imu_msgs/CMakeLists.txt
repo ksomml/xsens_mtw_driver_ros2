@@ -13,6 +13,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/IMUData.msg"
+  "msg/IMUDataSingle.msg"
   "msg/IMUDataArray.msg"
   "msg/Quaternion.msg"
   DEPENDENCIES geometry_msgs std_msgs

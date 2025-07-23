@@ -13,6 +13,9 @@ XsensManager::XsensManager(const std::string & name)
 {
     // --------------------------------------------------------------------
     // ROS2 PARAMETERS
+    this->declare_parameter("one_topic_per_imu", false);
+    m_oneTopicPerImu = this->get_parameter("one_topic_per_imu").as_bool();
+
     this->declare_parameter("topic_name", "xsens_imu_data");
     m_topicName = this->get_parameter("topic_name").as_string();
 
@@ -30,8 +33,15 @@ XsensManager::XsensManager(const std::string & name)
 
     this->declare_parameter("use_magnetometer", false);
     m_useMagnetometer = this->get_parameter("use_magnetometer").as_bool();
-
-    RCLCPP_INFO(this->get_logger(), "Parameters loaded");
+	
+    RCLCPP_INFO(this->get_logger(), "ROS2 parameters loaded:");
+    RCLCPP_INFO(this->get_logger(), "- one_topic_per_imu: %s", m_oneTopicPerImu ? "true" : "false");
+    RCLCPP_INFO(this->get_logger(), "- topic_name: %s", m_topicName.c_str());
+    RCLCPP_INFO(this->get_logger(), "- ros2_rate: %d Hz", m_ros2Rate);
+    RCLCPP_INFO(this->get_logger(), "- imu_rate: %d Hz", m_imuRate);
+    RCLCPP_INFO(this->get_logger(), "- radio_channel: %d", m_radioChannel);
+    RCLCPP_INFO(this->get_logger(), "- imu_reset_on_record: %s", m_imuResetOnRecord ? "true" : "false");
+    RCLCPP_INFO(this->get_logger(), "- use_magnetometer: %s", m_useMagnetometer ? "true" : "false");
 
     // --------------------------------------------------------------------
     // ROS2 SERVICES
@@ -278,7 +288,18 @@ void XsensManager::completeInitialization()
     }
 
     // ROS2 Publisher
-    m_imuPublisher = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_topicName, 10);
+    if (m_oneTopicPerImu){
+        // One-topic-per-imu
+        for (size_t i = 0; i < m_connectedMTWCount; ++i)
+        {
+            std::string mtwID = m_mtwDeviceIds[i].toString().toStdString();
+			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataSingle>(m_topicName + "_" + mtwID, 10);
+			m_imuPublishers.push_back(imu_pub);
+		}
+    } else {
+        // One-topic-for-all
+        m_imuPublisher = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_topicName, 10);
+    }
 
     RCLCPP_WARN(this->get_logger(), "Publishers started, press 'q' to quit");
     RCLCPP_WARN(this->get_logger(), "Press 'r' to start and 's' to stop recording");
@@ -289,14 +310,15 @@ void XsensManager::completeInitialization()
     // Reset restart flag
     m_restartRequested = false;
 
-    // Start publish timer
+
     m_publishTimer->reset();
+
 }
 
 // Main loop to publish IMU data collected from the Xsens MTw's (depends on m_publishTimer)
 void XsensManager::publishDataCallback()
 {
-    imu_msgs::msg::IMUDataArray imu_data_array_msg;
+    imu_msgs::msg::IMUDataArray imuDataArrayMsg;
 
     for (size_t i = 0; i < m_connectedMTWCount; ++i)
     {
@@ -380,7 +402,15 @@ void XsensManager::publishDataCallback()
         m_imuDataMsg[i].orientation.z = quat[3];
 
         // Using last known data if no new data is available
-        imu_data_array_msg.imu_data.push_back(m_imuDataMsg[i]);
+        imuDataArrayMsg.imu_data.push_back(m_imuDataMsg[i]);
+
+        // Publish one-topic-per-imu
+        if (m_oneTopicPerImu){
+            imu_msgs::msg::IMUDataSingle imuDataSingleMsg;
+            imuDataSingleMsg.imu_data = m_imuDataMsg[i];
+            imuDataSingleMsg.timestamp = this->now().nanoseconds();
+            m_imuPublishers[i]->publish(imuDataSingleMsg);
+        }
 
         // Announce IMU timeout
         if (m_dataTracker[i] > m_maxDataSkip)
@@ -394,10 +424,12 @@ void XsensManager::publishDataCallback()
         }
     }
 
-    // Publish IMU data
-    m_timestamp = this->now().nanoseconds();
-    imu_data_array_msg.timestamp = m_timestamp;
-    m_imuPublisher->publish(imu_data_array_msg);
+    // Publish IMU data for one-topic-for-all
+    m_timestamp = this->now().nanoseconds();  // put here for current writeDataToFile process
+    if (!m_oneTopicPerImu){
+        imuDataArrayMsg.timestamp = m_timestamp;
+        m_imuPublisher->publish(imuDataArrayMsg);
+    }
 
     if (m_status == RECORDING) writeDataToFile();
 

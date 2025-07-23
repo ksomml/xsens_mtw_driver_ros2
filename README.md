@@ -11,6 +11,7 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 - Custom .yaml config file
 - Node control via terminal key presses or ROS2 services
 - Simultaneous orientation visualization in RViz for multiple IMUs
+- One-topic-for-all or one-topic-per-imu
 
 ### Hardware
 
@@ -47,7 +48,7 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 - [Ubuntu Linux](https://www.releases.ubuntu.com/)
 - [ROS2](https://docs.ros.org/)
 
-Tested with Ubuntu 22.04 (ROS2 Humble) and 24.04 (ROS2 Jazzy).
+Tested with Ubuntu 22.04 (ROS2 Humble, ROS2 Rolling) and 24.04 (ROS2 Jazzy).
 
 ## Usage
 
@@ -60,9 +61,9 @@ source install/setup.bash
 
 ### Xsens MTw Manager
 
-By default, the Xsens MTw Manager node publishes all sensor data into the `/xsens_imu_data` ROS2 topic. The topic name and other parameters can be adjusted in the `/config/params.yaml` file. See [Custom parameters](#custom-parameters) for more information.
+By default, the Xsens MTw Manager node publishes all sensor data into the `/xsens_imu_data` ROS2 topic. The topic name, an option to enable one topic per IMU sensor, and other parameters can be configured in the `/config/params.yaml` or at the top of the `xsens_mtw_manager.cpp`. See [Custom parameters](#custom-parameters) for more information.
 
-ROS2 timestamps are used to record the time at which data is received. If a data packet is lost, the last available data will be used. The recorded data is saved in a `.csv` file with multi-indexing (header of 3). This file will include the ROS2 timestamps with the received MTw orientation, angular velocity, linear acceleration and the magnetic field. The recorded data is saved in the same directory where the node is started.
+ROS2 timestamps are used to record the time at which data is received. If a data packet is lost, the last available data will be used. The recorded data is saved in a `.csv` file with multi-indexing (header of 3). This file will include the ROS2 timestamps with the received MTw orientation, angular velocity, linear acceleration and the magnetic field. The recorded data is saved in the same directory where the node is started. Currently, setting `one_topic_per_imu` to `true` will cause the recording feature of the node to apply only the latest timestamp, as if data from all IMUs were published simultaneously.
 
 ---
 
@@ -107,13 +108,14 @@ The `/config/params.yaml` can be used to easily set the desired parameters. Make
 
 If the `ros2_rate` is larger than the `imu_rate`, the node will upsample the IMU data by always using the last available data until the next data is received. The `imu_rate` is the maximum rate the IMUs can send data. Make sure to follow the [supported sensor update rates](#supported-sensor-update-rates-for-the-xsens-mtw-awinda-system).
 
-| Parameter           | Description                                  |
-|---------------------|----------------------------------------------|
-| topic_name          | ROS2 topic name for published data           |
-| ros2_rate           | ROS2 data publish rate                       |
-| imu_rate            | IMU data update rate                         |
-| imu_reset_on_record | Reset IMU orientation on record start        |
-| use_magnetometer    | Use Magnetometer data to update orientations |
+| Parameter           | Description                                            |
+|---------------------|--------------------------------------------------------|
+| one_topic_per_imu   | Switch between one-topic-for-all and one-topic-per-imu |
+| topic_name          | ROS2 topic name for published data                     |
+| ros2_rate           | ROS2 data publish rate                                 |
+| imu_rate            | IMU data update rate                                   |
+| imu_reset_on_record | Reset IMU orientation on record start                  |
+| use_magnetometer    | Use Magnetometer data to update orientations           |
 
 #### No keyboard inputs for launch files
 
@@ -139,7 +141,8 @@ ros2 run xsens_mtw_driver xsens_mtw_manager --ros-args --params-file </path/to/p
 
 ### Xsens MTw Visualization
 
-The `xsens_mtw_visualization` node publishes the IMU orientations in the `/tf` ROS2 topic for visualization purposes in RViz. Make sure to have the TF display added in RViz. Also see [Xsens MTw Awinda IMU Coordinate System](#xsens-mtw-awinda-imu-coordinate-system) to know which way the IMUs are oriented.
+The `xsens_mtw_visualization` node publishes the IMU orientations in the `/tf` ROS2 topic for visualization purposes in RViz. Make sure to
+have the TF display added in RViz. Also see [Xsens MTw Awinda IMU Coordinate System](#xsens-mtw-coordinate-system) to know which way the IMUs are oriented.
 
 Using `xsens_mtw_visualization` without any config, will publish the TFs of all IMUs next to each other. Using the launch file will load `/config/imu_mapping.yaml`. This is only used for a specific IMU setup. The idea behind it is to move the IMU orientations into a more visually comprehensible position. The amount of IMUs can be adjusted in the `.yaml` file and the positions inside the `xsens_mtw_visualization.cpp` file.
 
