@@ -1,9 +1,35 @@
+/**:
+  ros__parameters:
+    one_topic_per_imu: true            # bool    publish one topic per IMU or one mono topic
+    mtw_topic_name: "xsens_imu_data"   # string  Topic name for the mono topic or prefix of the topic name for one topic per IMU
+
 xsens_mtw_manager:
   ros__parameters:
-    one_topic_per_imu: false        # bool    One topic for all the IMUs or one topic per IMU
-    topic_name: "xsens_imu_data"    # string  Topic name for the mono topic or prefix of the topic name for one topic per IMU
-    ros2_rate: 100                  # int     ROS2 data publish rate
-    imu_rate: 100                   # int     see supported update rates [120, 100, 80, 60, 40]
-    imu_reset_on_record: true       # bool    reset IMU orientation on record start
-    radio_channel: 25               # int     range: 11 to 25
-    use_magnetometer: false         # bool    for quaternion orientation calculation
+    ros2_rate: 100                     # int     ROS2 data publish rate
+    imu_rate: 100                      # int     see supported update rates [120, 100, 80, 60, 40]
+    imu_reset_on_record: true          # bool    reset IMU orientation on record start
+    radio_channel: 25                  # int     range: 11 to 25
+    use_magnetometer: false            # bool    for quaternion orientation calculation
+
+xsens_mtw_visualization:
+  ros__parameters:
+    imu_spacing: 0.5                   # float   spacing between IMUs in meters
+    use_imu_mapping: false             # bool    use the IMU mapping to publish the TFs in a more comprehensible way
+    imu_prefix: "00B483"               # string  prefix of the IMU IDs (e.g. "00B483"), only needed if imu mapping is enabled
+    imu_mapping:
+      [
+        "A1", "torso_imu",
+        "84", "pelvis_imu",
+        "9D", "femur_l_imu",
+        "9C", "femur_r_imu",
+        "A4", "tibia_l_imu",
+        "A0", "tibia_r_imu",
+        "83", "calcn_l_imu",
+        "9F", "calcn_r_imu"
+      ]
+
+    # A dictionary for the imu_mapping would be more practical, but cannot be used in ROS2 parameters.
+    # Make sure to adjust the TF offsets in the xsens_mtw_visualization node when using a different setup.
+
+# Using wildcards (/**:):
+# https://docs.ros.org/en/humble/Tutorials/Intermediate/Launch/Using-ROS2-Launch-For-Large-Projects.html#using-wildcards-in-yaml-files
