@@ -14,6 +14,7 @@
 // Custom ROS2 messages
 #include "imu_msgs/msg/imu_data.hpp"
 #include "imu_msgs/msg/imu_data_array.hpp"
+#include "imu_msgs/msg/imu_data_single.hpp"
 #include "imu_msgs/msg/quaternion.hpp"
 
 // Custom ROS2

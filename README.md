@@ -11,6 +11,7 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 - Custom .yaml config file
 - Node control via terminal key presses or ROS2 services
 - Simultaneous orientation visualization in RViz for multiple IMUs
+- One-topic-for-all or one-topic-per-imu
 
 ### Hardware
 
@@ -47,7 +48,7 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 - [Ubuntu Linux](https://www.releases.ubuntu.com/)
 - [ROS2](https://docs.ros.org/)
 
-Tested with Ubuntu 22.04 (ROS2 Humble) and 24.04 (ROS2 Jazzy).
+Tested with Ubuntu 22.04 (ROS2 Humble, ROS2 Rolling) and 24.04 (ROS2 Jazzy).
 
 ## Usage
 

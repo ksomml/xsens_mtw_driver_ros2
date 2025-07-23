@@ -283,10 +283,10 @@ void XsensManager::completeInitialization()
     // ROS2 Publisher
     if (m_oneTopicPerImu){
         // One-topic-per-imu
-        for (int i = 0; i < m_connectedMTWCount; ++i)
+        for (size_t i = 0; i < m_connectedMTWCount; ++i)
 		{
 			std::string mtwID = m_mtwDeviceIds[i].toString().toStdString();
-			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_topicName + mtwID, 10);
+			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataSingle>(m_topicName + mtwID, 10);
 			m_imuPublishers.push_back(imu_pub);
 		}
     } else {
@@ -303,16 +303,9 @@ void XsensManager::completeInitialization()
     // Reset restart flag
     m_restartRequested = false;
 
-    if (m_oneTopicPerImu){
-        // One-topic-per-imu
-        for (int i = 0; i < m_connectedMTWCount; ++i)
-		{
-			m_imuPublishers[i]->reset();
-		}
-    } else {
-        // One-topic-for-all
-        m_publishTimer->reset();
-    }
+
+    m_publishTimer->reset();
+
 }
 
 // Main loop to publish IMU data collected from the Xsens MTw's (depends on m_publishTimer)
@@ -405,12 +398,15 @@ void XsensManager::publishDataCallback()
         imu_data_array_msg.imu_data.push_back(m_imuDataMsg[i]);
         
         // Publish one-topic-per-imu
-        if (!one_topic_per_imu){
-            imu_msgs::msg::IMUDataSingle imu_data_msg;
+        if (m_oneTopicPerImu){
+            imu_msgs::msg::IMUDataSingle imu_data_single_msg;
+
+            imu_data_single_msg.imu_data = m_imuDataMsg[i];
             
             m_timestamp = this->now().nanoseconds();
-            imu_data_array_msg.timestamp = m_timestamp;
-            m_imuPublisher->publish(imu_data_array_msg);
+            imu_data_single_msg.timestamp = m_timestamp;
+
+            m_imuPublishers[i]->publish(imu_data_single_msg);
         }
         
 
@@ -427,7 +423,7 @@ void XsensManager::publishDataCallback()
     }
 
     // Publish IMU data for one-topic-for-all
-    if (!one_topic_per_imu){
+    if (!m_oneTopicPerImu){
         m_timestamp = this->now().nanoseconds();
         imu_data_array_msg.timestamp = m_timestamp;
         m_imuPublisher->publish(imu_data_array_msg);
