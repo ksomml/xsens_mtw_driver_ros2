@@ -386,7 +386,8 @@ void XsensManager::publishDataCallback()
         {
             m_vqfFilters[i].update(gyr, acc, mag);
             m_vqfFilters[i].getQuat9D(quat);
-        }m_timestamp = this->now().nanoseconds();
+        }
+        m_timestamp = this->now().nanoseconds();
 
         // Update orientation quaternion in message
         m_imuDataMsg[i].orientation.w = quat[0];
