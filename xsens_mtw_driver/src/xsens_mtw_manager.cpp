@@ -16,8 +16,8 @@ XsensManager::XsensManager(const std::string & name)
     this->declare_parameter("one_topic_per_imu", false);
     m_oneTopicPerImu = this->get_parameter("one_topic_per_imu").as_bool();
 
-    this->declare_parameter("topic_name", "xsens_imu_data");
-    m_topicName = this->get_parameter("topic_name").as_string();
+    this->declare_parameter("mtw_topic_name", "xsens_imu_data");
+    m_mtwTopicName = this->get_parameter("mtw_topic_name").as_string();
 
     this->declare_parameter("ros2_rate", 100);
     m_ros2Rate = this->get_parameter("ros2_rate").as_int();
@@ -33,10 +33,10 @@ XsensManager::XsensManager(const std::string & name)
 
     this->declare_parameter("use_magnetometer", false);
     m_useMagnetometer = this->get_parameter("use_magnetometer").as_bool();
-	
+
     RCLCPP_INFO(this->get_logger(), "ROS2 parameters loaded:");
     RCLCPP_INFO(this->get_logger(), "- one_topic_per_imu: %s", m_oneTopicPerImu ? "true" : "false");
-    RCLCPP_INFO(this->get_logger(), "- topic_name: %s", m_topicName.c_str());
+    RCLCPP_INFO(this->get_logger(), "- topic_name: %s", m_mtwTopicName.c_str());
     RCLCPP_INFO(this->get_logger(), "- ros2_rate: %d Hz", m_ros2Rate);
     RCLCPP_INFO(this->get_logger(), "- imu_rate: %d Hz", m_imuRate);
     RCLCPP_INFO(this->get_logger(), "- radio_channel: %d", m_radioChannel);
@@ -293,12 +293,12 @@ void XsensManager::completeInitialization()
         for (size_t i = 0; i < m_connectedMTWCount; ++i)
         {
             std::string mtwID = m_mtwDeviceIds[i].toString().toStdString();
-			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataSingle>(m_topicName + "_" + mtwID, 10);
+			auto imu_pub = this->create_publisher<imu_msgs::msg::IMUDataSingle>(m_mtwTopicName + "_" + mtwID, 10);
 			m_imuPublishers.push_back(imu_pub);
 		}
     } else {
         // One-topic-for-all
-        m_imuPublisher = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_topicName, 10);
+        m_imuPublisher = this->create_publisher<imu_msgs::msg::IMUDataArray>(m_mtwTopicName, 10);
     }
 
     RCLCPP_WARN(this->get_logger(), "Publishers started, press 'q' to quit");
@@ -1128,5 +1128,4 @@ std::ostream & operator << (std::ostream & out, XsDevice const & d)
         << d.productCode().toStdString() << ")";
     return out;
 }
-
 } /* namespace xsens_mtw_manager */

@@ -13,7 +13,7 @@ from launch_ros.actions import Node
 # ros2 run xsens_mtw_driver_ros2 xsens_mtw_manager --ros-args -p ros2_rate:=100
 
 def generate_launch_description() -> LaunchDescription:
-    """Launch configuration for the xsens_mtw_driver."""
+    """Launch configuration for the MTw Awinda manager of the xsens_mtw_driver package."""
     mtw_driver_path = get_package_share_path('xsens_mtw_driver')
     ros_config_params = Path(mtw_driver_path) / 'config/params.yaml'
 

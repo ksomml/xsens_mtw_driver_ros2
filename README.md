@@ -111,10 +111,11 @@ If the `ros2_rate` is larger than the `imu_rate`, the node will upsample the IMU
 | Parameter           | Description                                            |
 |---------------------|--------------------------------------------------------|
 | one_topic_per_imu   | Switch between one-topic-for-all and one-topic-per-imu |
-| topic_name          | ROS2 topic name for published data                     |
+| mtw_topic_name      | ROS2 topic name or prefix for published data           |
 | ros2_rate           | ROS2 data publish rate                                 |
 | imu_rate            | IMU data update rate                                   |
 | imu_reset_on_record | Reset IMU orientation on record start                  |
+| radio_channel       | Radio channel to use (11 to 25)                        |
 | use_magnetometer    | Use Magnetometer data to update orientations           |
 
 #### No keyboard inputs for launch files
@@ -144,7 +145,7 @@ ros2 run xsens_mtw_driver xsens_mtw_manager --ros-args --params-file </path/to/p
 The `xsens_mtw_visualization` node publishes the IMU orientations in the `/tf` ROS2 topic for visualization purposes in RViz. Make sure to
 have the TF display added in RViz. Also see [Xsens MTw Awinda IMU Coordinate System](#xsens-mtw-coordinate-system) to know which way the IMUs are oriented.
 
-Using `xsens_mtw_visualization` without any config, will publish the TFs of all IMUs next to each other. Using the launch file will load `/config/imu_mapping.yaml`. This is only used for a specific IMU setup. The idea behind it is to move the IMU orientations into a more visually comprehensible position. The amount of IMUs can be adjusted in the `.yaml` file and the positions inside the `xsens_mtw_visualization.cpp` file.
+Using `xsens_mtw_visualization` without any config, will publish the TFs of all IMUs next to each other. Using the launch file will load `/config/params.yaml` which offers to enable a experimental IMU mapping configuration. The idea behind it is to move the IMU orientations into a more visually comprehensible position. The amount of IMUs can be adjusted in the `.yaml` file and the positions inside the `xsens_mtw_visualization.cpp` file.
 
 ---
 
@@ -159,8 +160,6 @@ or
 ```sh
 ros2 launch xsens_mtw_driver xsens_mtw_visualization.launch.py
 ```
-
-> Loads the `/config/imu_mapping.yaml`. [experimental]
 
 ---
 
