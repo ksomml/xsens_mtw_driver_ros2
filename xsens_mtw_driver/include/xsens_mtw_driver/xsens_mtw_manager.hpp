@@ -81,6 +81,7 @@ private:
     std::ofstream m_file;
     std::vector<int> m_dataTracker;
     int m_maxDataSkip;
+    int64_t m_timestamp;
     bool m_waitForConnections;
     bool m_keyInterrupt;
     bool m_isHeaderWritten;
@@ -101,8 +102,6 @@ private:
     // ROS2 Publisher
     rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuPublisher;
     std::vector<std::shared_ptr<rclcpp::Publisher<imu_msgs::msg::IMUDataSingle, std::allocator<void>>>> m_imuPublishers;
-
-    int64_t m_timestamp;
 
     // ROS2 Services
     rclcpp::Service<xsrvs::Trigger>::SharedPtr m_statusService;
