@@ -404,7 +404,6 @@ void XsensManager::publishDataCallback()
 
             imu_data_single_msg.imu_data = m_imuDataMsg[i];
             
-            m_timestamp = this->now().nanoseconds();
             imu_data_single_msg.timestamp = m_timestamp;
 
             m_imuPublishers[i]->publish(imu_data_single_msg);
