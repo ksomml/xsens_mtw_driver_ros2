@@ -4,6 +4,7 @@
 #include "tf2_ros/transform_broadcaster.h"
 
 #include "imu_msgs/msg/imu_data_array.hpp"
+#include "imu_msgs/msg/imu_data_single.hpp"
 
 
 using namespace std::chrono_literals;
@@ -18,16 +19,26 @@ namespace xsens_mtw_visualization
         virtual ~XsensVisualization();
 
     private:
-        std::string imu_prefix_;
-        std::vector<std::string> imu_mapping_;
-        std::vector<std::string> imu_ids_vec_;
+        bool m_oneTopicPerImu;
+        bool m_useImuMapping;
+        double m_imuSpacing;
+        std::string m_mtwTopicName;
+        std::string m_imuPrefix;
+        std::vector<std::string> m_imuMapping;
+        std::vector<std::string> m_imuIdsVec;
 
-        rclcpp::Subscription<imu_msgs::msg::IMUDataArray>::SharedPtr xsens_imu_data_sub_;
+        rclcpp::Subscription<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuMonoTopicSubscriber;
+        std::vector<rclcpp::Subscription<imu_msgs::msg::IMUDataSingle>::SharedPtr> m_imuSubscriberArray;
 
-        std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+        std::shared_ptr<tf2_ros::TransformBroadcaster> m_tfBroadcaster;
 
-        void imu_data_callback_default(const imu_msgs::msg::IMUDataArray::SharedPtr);
-        void imu_data_callback_custom(const imu_msgs::msg::IMUDataArray::SharedPtr);
+        std::set<std::string> m_subscribedTopics;
+        rclcpp::TimerBase::SharedPtr m_topicCheckTimer;
+
+        void discoverAndSubscribeToImuTopics();
+        void imuDataDefaultMonoTopicCallback(const imu_msgs::msg::IMUDataArray::SharedPtr);
+        void imuDataDefaultMultiTopicCallback(const imu_msgs::msg::IMUDataSingle::SharedPtr);
+        void imuDataCustomMonoTopicCallback(const imu_msgs::msg::IMUDataArray::SharedPtr);
     };
 
 } /* namespace xsens_mtw_visualization */
