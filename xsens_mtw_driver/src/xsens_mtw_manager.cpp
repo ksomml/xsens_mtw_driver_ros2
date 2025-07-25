@@ -34,6 +34,13 @@ XsensManager::XsensManager(const std::string & name)
     this->declare_parameter("use_magnetometer", false);
     m_useMagnetometer = this->get_parameter("use_magnetometer").as_bool();
 
+    // TODO set to false by default
+    this->declare_parameter("use_synchronisation", true);
+    m_useSynchronisation = this->get_parameter("use_synchronisation").as_bool();
+
+    this->declare_parameter("synchronisation_topic", "xsens_sync");
+    m_syncTopicName = this->get_parameter("synchronisation_topic").as_string();
+
     RCLCPP_INFO(this->get_logger(), "ROS2 parameters loaded:");
     RCLCPP_INFO(this->get_logger(), "- one_topic_per_imu: %s", m_oneTopicPerImu ? "true" : "false");
     RCLCPP_INFO(this->get_logger(), "- topic_name: %s", m_mtwTopicName.c_str());
@@ -42,6 +49,10 @@ XsensManager::XsensManager(const std::string & name)
     RCLCPP_INFO(this->get_logger(), "- radio_channel: %d", m_radioChannel);
     RCLCPP_INFO(this->get_logger(), "- imu_reset_on_record: %s", m_imuResetOnRecord ? "true" : "false");
     RCLCPP_INFO(this->get_logger(), "- use_magnetometer: %s", m_useMagnetometer ? "true" : "false");
+
+    RCLCPP_INFO(this->get_logger(), "Synchronisation:");
+    RCLCPP_INFO(this->get_logger(), "  - use_synchronisation: %s", m_useSynchronisation ? "true" : "false");
+    RCLCPP_INFO(this->get_logger(), "  - topic_name: %s", m_syncTopicName.c_str());
 
     // --------------------------------------------------------------------
     // ROS2 SERVICES
@@ -141,6 +152,17 @@ void XsensManager::initialMasterSetup()
         std::ostringstream error;
         error << "Failed to construct XsDevice instance: " << *m_wirelessMasterPort;
         throw std::runtime_error(error.str());
+    }
+
+    // Synchronisation
+    if (m_useSynchronisation){
+        syncInitialization();
+        if(m_syncSuccessful)
+        {
+            m_syncPublisher = this->create_publisher<std_msgs::msg::Int64>(m_syncTopicName, 10);
+        }
+    } else {
+        m_syncSuccessful = false;
     }
 
     RCLCPP_INFO(this->get_logger(), "Putting master into configuration mode...");
@@ -315,6 +337,36 @@ void XsensManager::completeInitialization()
 
 }
 
+// Complete synchronisation_topic initialization steps
+void XsensManager::syncInitialization(){
+    if(!m_wirelessMasterDevice->deviceId().isAwindaXStation()){
+        RCLCPP_ERROR(this->get_logger(), "Awinda XStation is required for synchronisation");
+        m_syncSuccessful = false;
+        return;
+    }
+
+    XsSyncSetting syncSetting;
+    syncSetting.m_line = XSL_In1;  // Use Sync_In1
+    syncSetting.m_function = XSF_TriggerIndication;  // Set function to trigger indication
+    syncSetting.m_polarity = XSP_RisingEdge;  // Trigger on rising edge (change if needed)
+    syncSetting.m_skipFactor = 0;  // No skipped triggers
+    syncSetting.m_offset = 0;  // No offset
+
+    XsSyncSettingArray syncSettings;
+    syncSettings.push_back(syncSetting);
+
+    if (!m_wirelessMasterDevice->setSyncSettings(syncSettings)) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to configure the synchronisation");
+        m_syncSuccessful = false;
+        return;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Synchronisation configured");
+    m_syncSuccessful = true;
+    return;
+
+}
+
 // Main loop to publish IMU data collected from the Xsens MTw's (depends on m_publishTimer)
 void XsensManager::publishDataCallback()
 {
@@ -359,6 +411,14 @@ void XsensManager::publishDataCallback()
 
                 // Reset m_dataTracker if new data is available
                 m_dataTracker[i] = 0;
+
+            XsTriggerIndicationData xtid = packet->triggerIndication(XDI_TriggerIn1);
+              if (xtid.m_timestamp > 0) {
+                std_msgs::msg::Int64 sync_msg;
+                sync_msg.data = xtid.m_timestamp;
+                m_syncPublisher->publish(sync_msg);
+
+              }
             }
 
             m_mtwCallbacks[i]->deleteOldestPacket();

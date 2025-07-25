@@ -11,6 +11,10 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
+// ROS2 messages
+#include "std_msgs/msg/int64.hpp"
+
+
 // Custom ROS2 messages
 #include "imu_msgs/msg/imu_data.hpp"
 #include "imu_msgs/msg/imu_data_array.hpp"
@@ -85,6 +89,7 @@ private:
     bool m_waitForConnections;
     bool m_keyInterrupt;
     bool m_isHeaderWritten;
+    bool m_syncSuccessful;
 
     // ROS2 Parameters
     std::string m_mtwTopicName;
@@ -95,6 +100,9 @@ private:
     bool m_imuResetOnRecord;
     bool m_useMagnetometer;
 
+    bool m_useSynchronisation;
+    std::string m_syncTopicName;
+
     // ROS2 Callbacks
     rclcpp::TimerBase::SharedPtr m_connectTimer;
     rclcpp::TimerBase::SharedPtr m_publishTimer;
@@ -102,7 +110,8 @@ private:
     // ROS2 Publisher
     rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuPublisher;
     std::vector<rclcpp::Publisher<imu_msgs::msg::IMUDataSingle>::SharedPtr> m_imuPublishers;
-
+    rclcpp::Publisher<std_msgs::msg::Int64>::SharedPtr m_syncPublisher;
+    
     // ROS2 Services
     rclcpp::Service<xsrvs::Trigger>::SharedPtr m_statusService;
     rclcpp::Service<xsrvs::Trigger>::SharedPtr m_getReadyService;
@@ -133,6 +142,7 @@ private:
     void initialMasterSetup();
     void connectMTWsCallback();
     void completeInitialization();
+    void syncInitialization();
     void publishDataCallback();
     void checkRateSupport();
     void mtwSetup();
