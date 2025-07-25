@@ -41,6 +41,9 @@ XsensManager::XsensManager(const std::string & name)
     this->declare_parameter("synchronisation_topic", "xsens_sync");
     m_syncTopicName = this->get_parameter("synchronisation_topic").as_string();
 
+    this->declare_parameter("synchronisation_line", 2);
+    m_syncLine = this->get_parameter("synchronisation_line").as_int();
+
     RCLCPP_INFO(this->get_logger(), "ROS2 parameters loaded:");
     RCLCPP_INFO(this->get_logger(), "- one_topic_per_imu: %s", m_oneTopicPerImu ? "true" : "false");
     RCLCPP_INFO(this->get_logger(), "- topic_name: %s", m_mtwTopicName.c_str());
@@ -53,6 +56,7 @@ XsensManager::XsensManager(const std::string & name)
     RCLCPP_INFO(this->get_logger(), "Synchronisation:");
     RCLCPP_INFO(this->get_logger(), "  - use_synchronisation: %s", m_useSynchronisation ? "true" : "false");
     RCLCPP_INFO(this->get_logger(), "  - topic_name: %s", m_syncTopicName.c_str());
+    RCLCPP_INFO(this->get_logger(), "  - synchronisation_line: %d", m_syncLine);
 
     // --------------------------------------------------------------------
     // ROS2 SERVICES
@@ -345,8 +349,21 @@ void XsensManager::syncInitialization(){
         return;
     }
 
+    if(m_syncLine == 1){
+        m_line = XSL_In1;
+        m_lineDateIdentifier = XDI_TriggerIn1;
+    } else if (m_syncLine == 2){
+        m_line = XSL_In2;
+        m_lineDateIdentifier = XDI_TriggerIn2;
+    } else {
+        RCLCPP_ERROR(this->get_logger(), "Sync Line should be 1 or 2 and not %d", m_syncLine);
+        m_syncSuccessful = false;
+        return;
+    }
+
+
     XsSyncSetting syncSetting;
-    syncSetting.m_line = XSL_In1;  // Use Sync_In1
+    syncSetting.m_line = m_line;  // Use Sync_In1
     syncSetting.m_function = XSF_TriggerIndication;  // Set function to trigger indication
     syncSetting.m_polarity = XSP_RisingEdge;  // Trigger on rising edge (change if needed)
     syncSetting.m_skipFactor = 0;  // No skipped triggers
@@ -411,16 +428,19 @@ void XsensManager::publishDataCallback()
 
                 // Reset m_dataTracker if new data is available
                 m_dataTracker[i] = 0;
+            
+                // If synchronisation is needed
+                if(m_syncSuccessful){
+                    XsTriggerIndicationData xtid = packet->triggerIndication(m_lineDateIdentifier);
+                    if (xtid.m_timestamp > 0) {
+                        std_msgs::msg::Int64 sync_msg;
+                        sync_msg.data = xtid.m_timestamp;
+                        m_syncPublisher->publish(sync_msg);
 
-            XsTriggerIndicationData xtid = packet->triggerIndication(XDI_TriggerIn1);
-              if (xtid.m_timestamp > 0) {
-                std_msgs::msg::Int64 sync_msg;
-                sync_msg.data = xtid.m_timestamp;
-                m_syncPublisher->publish(sync_msg);
-
-              }
+                    }
+                }
             }
-
+            
             m_mtwCallbacks[i]->deleteOldestPacket();
         }
         else m_dataTracker[i]++;

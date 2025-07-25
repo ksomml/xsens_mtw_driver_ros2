@@ -89,7 +89,11 @@ private:
     bool m_waitForConnections;
     bool m_keyInterrupt;
     bool m_isHeaderWritten;
+
+    // Synchronisation
     bool m_syncSuccessful;
+    XsSyncLine m_line;
+    XsDataIdentifier m_lineDateIdentifier;
 
     // ROS2 Parameters
     std::string m_mtwTopicName;
@@ -102,6 +106,7 @@ private:
 
     bool m_useSynchronisation;
     std::string m_syncTopicName;
+    int m_syncLine;
 
     // ROS2 Callbacks
     rclcpp::TimerBase::SharedPtr m_connectTimer;
