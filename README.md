@@ -118,30 +118,30 @@ If the `ros2_rate` is larger than the `imu_rate`, the node will upsample the IMU
 | imu_reset_on_record     | Reset IMU orientation on record start                  |
 | radio_channel           | Radio channel to use (11 to 25)                        |
 | use_magnetometer        | Use Magnetometer data to update orientations           |
-| use_synchronisation     | Enable Sync functionality                              |
-| synchronisation_topic   | Topic name for synchronisation messages               |
-| synchronisation_line    | Select the synchronisation line (1 or 2)              |
+| use_synchronization     | Enable Sync functionality                              |
+| synchronization_topic   | Topic name for synchronization messages               |
+| synchronization_line    | Select the synchronization line (1 or 2)              |
 
-#### Synchronisation
+#### synchronization
 
-The Xsens MTw driver supports synchronisation functionality through external trigger signals. This feature allows you to synchronize IMU data collection with external events or other sensor systems. Only external triggers going into the base station are supported for now.
+The Xsens MTw driver supports synchronization functionality through external trigger signals. This feature allows you to synchronize IMU data collection with external events or other sensor systems. Only external triggers going into the base station are supported for now.
 
 **Requirements:**
-- Requires an **Xsens Awinda XStation** (master device) to enable synchronisation functionality
-- External trigger signal connected to one of the synchronisation input lines
+- Requires an **Xsens Awinda XStation** (master device) to enable synchronization functionality
+- External trigger signal connected to one of the synchronization input lines
 
 **How it works:**
-- When `use_synchronisation` is enabled, the driver configures the Awinda XStation to listen for trigger signals on the specified synchronisation line (1 or 2)
+- When `use_synchronization` is enabled, the driver configures the Awinda XStation to listen for trigger signals on the specified synchronization line (1 or 2)
 - The system is set to trigger on rising edge signals with no skip factor or offset
 - When a trigger event is detected, the driver publishes the trigger timestamp to the specified ROS2 topic
 - The trigger timestamp is extracted from the IMU data packets and published as an `std_msgs::msg::Int64` message
 
 **Configuration:**
-- `use_synchronisation`: Set to `true` to enable sync functionality
-- `synchronisation_topic`: ROS2 topic name where trigger timestamps will be published (default: `"xsens_sync"`)
-- `synchronisation_line`: Select which sync input line to use - either `1` or `2` (default: `1`)
+- `use_synchronization`: Set to `true` to enable sync functionality
+- `synchronization_topic`: ROS2 topic name where trigger timestamps will be published (default: `"xsens_sync"`)
+- `synchronization_line`: Select which sync input line to use - either `1` or `2` (default: `1`)
 
-**Note:** If the Awinda XStation is not detected or sync configuration fails, synchronisation will be disabled and an error message will be logged.
+**Note:** If the Awinda XStation is not detected or sync configuration fails, synchronization will be disabled and an error message will be logged.
 
 #### No keyboard inputs for launch files
 

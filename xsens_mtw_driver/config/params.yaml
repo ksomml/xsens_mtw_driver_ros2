@@ -11,9 +11,9 @@ xsens_mtw_manager:
     radio_channel: 25                   # int     range: 11 to 25
     use_magnetometer: false             # bool    for quaternion orientation calculation
 
-    use_synchronisation: true           # bool    Use synchronisation with the Xsens MTw Manager
-    synchronisation_topic: "xsens_sync" # string  Topic name for synchronisation messages
-    synchronisation_line: 1             # int     Select the sychronisation line (1 or 2)
+    use_synchronization: true           # bool    Use synchronization with the Xsens MTw Manager
+    synchronization_topic: "xsens_sync" # string  Topic name for synchronization messages
+    synchronization_line: 1             # int     Select the sychronisation line (1 or 2)
 
 xsens_mtw_visualization:
   ros__parameters:

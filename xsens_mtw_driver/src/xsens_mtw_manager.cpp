@@ -35,14 +35,14 @@ XsensManager::XsensManager(const std::string & name)
     m_useMagnetometer = this->get_parameter("use_magnetometer").as_bool();
 
     // TODO set to false by default
-    this->declare_parameter("use_synchronisation", true);
-    m_useSynchronisation = this->get_parameter("use_synchronisation").as_bool();
+    this->declare_parameter("use_synchronization", true);
+    m_usesynchronization = this->get_parameter("use_synchronization").as_bool();
 
-    this->declare_parameter("synchronisation_topic", "xsens_sync");
-    m_syncTopicName = this->get_parameter("synchronisation_topic").as_string();
+    this->declare_parameter("synchronization_topic", "xsens_sync");
+    m_syncTopicName = this->get_parameter("synchronization_topic").as_string();
 
-    this->declare_parameter("synchronisation_line", 2);
-    m_syncLine = this->get_parameter("synchronisation_line").as_int();
+    this->declare_parameter("synchronization_line", 2);
+    m_syncLine = this->get_parameter("synchronization_line").as_int();
 
     RCLCPP_INFO(this->get_logger(), "ROS2 parameters loaded:");
     RCLCPP_INFO(this->get_logger(), "- one_topic_per_imu: %s", m_oneTopicPerImu ? "true" : "false");
@@ -53,10 +53,10 @@ XsensManager::XsensManager(const std::string & name)
     RCLCPP_INFO(this->get_logger(), "- imu_reset_on_record: %s", m_imuResetOnRecord ? "true" : "false");
     RCLCPP_INFO(this->get_logger(), "- use_magnetometer: %s", m_useMagnetometer ? "true" : "false");
 
-    RCLCPP_INFO(this->get_logger(), "Synchronisation:");
-    RCLCPP_INFO(this->get_logger(), "  - use_synchronisation: %s", m_useSynchronisation ? "true" : "false");
+    RCLCPP_INFO(this->get_logger(), "synchronization:");
+    RCLCPP_INFO(this->get_logger(), "  - use_synchronization: %s", m_usesynchronization ? "true" : "false");
     RCLCPP_INFO(this->get_logger(), "  - topic_name: %s", m_syncTopicName.c_str());
-    RCLCPP_INFO(this->get_logger(), "  - synchronisation_line: %d", m_syncLine);
+    RCLCPP_INFO(this->get_logger(), "  - synchronization_line: %d", m_syncLine);
 
     // --------------------------------------------------------------------
     // ROS2 SERVICES
@@ -158,8 +158,8 @@ void XsensManager::initialMasterSetup()
         throw std::runtime_error(error.str());
     }
 
-    // Synchronisation
-    if (m_useSynchronisation){
+    // synchronization
+    if (m_usesynchronization){
         syncInitialization();
         if(m_syncSuccessful)
         {
@@ -341,10 +341,10 @@ void XsensManager::completeInitialization()
 
 }
 
-// Complete synchronisation_topic initialization steps
+// Complete synchronization_topic initialization steps
 void XsensManager::syncInitialization(){
     if(!m_wirelessMasterDevice->deviceId().isAwindaXStation()){
-        RCLCPP_ERROR(this->get_logger(), "Awinda XStation is required for synchronisation");
+        RCLCPP_ERROR(this->get_logger(), "Awinda XStation is required for synchronization");
         m_syncSuccessful = false;
         return;
     }
@@ -373,12 +373,12 @@ void XsensManager::syncInitialization(){
     syncSettings.push_back(syncSetting);
 
     if (!m_wirelessMasterDevice->setSyncSettings(syncSettings)) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to configure the synchronisation");
+        RCLCPP_ERROR(this->get_logger(), "Failed to configure the synchronization");
         m_syncSuccessful = false;
         return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Synchronisation configured");
+    RCLCPP_INFO(this->get_logger(), "synchronization configured");
     m_syncSuccessful = true;
     return;
 
@@ -428,8 +428,8 @@ void XsensManager::publishDataCallback()
 
                 // Reset m_dataTracker if new data is available
                 m_dataTracker[i] = 0;
-            
-                // If synchronisation is needed
+
+                // If synchronization is needed
                 if(m_syncSuccessful){
                     XsTriggerIndicationData xtid = packet->triggerIndication(m_lineDateIdentifier);
                     if (xtid.m_timestamp > 0) {
@@ -440,7 +440,7 @@ void XsensManager::publishDataCallback()
                     }
                 }
             }
-            
+
             m_mtwCallbacks[i]->deleteOldestPacket();
         }
         else m_dataTracker[i]++;
