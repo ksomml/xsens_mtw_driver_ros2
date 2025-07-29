@@ -162,7 +162,7 @@ void XsensManager::initialMasterSetup()
 
     // Synchronization
     if (m_useSynchronization){
-        RCLCPP_INFO(this->get_logger(), "Setting up synchronization...", m_syncLine);
+        RCLCPP_INFO(this->get_logger(), "Setting up synchronization on line: %d", m_syncLine);
         syncInitialization();
         if(m_syncSuccessful) m_syncPublisher = this->create_publisher<std_msgs::msg::Int64>(m_syncTopicName, 10);
     }
