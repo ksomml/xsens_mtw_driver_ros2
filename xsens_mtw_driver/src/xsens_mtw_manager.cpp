@@ -34,8 +34,7 @@ XsensManager::XsensManager(const std::string & name)
     this->declare_parameter("use_magnetometer", false);
     m_useMagnetometer = this->get_parameter("use_magnetometer").as_bool();
 
-    // TODO set to false by default
-    this->declare_parameter("use_synchronization", true);
+    this->declare_parameter("use_synchronization", false);
     m_useSynchronization = this->get_parameter("use_synchronization").as_bool();
 
     this->declare_parameter("synchronization_topic", "xsens_sync");
