@@ -359,7 +359,7 @@ void XsensManager::syncInitialization(){
     }
 
     XsSyncSetting syncSetting;
-    syncSetting.m_line = m_line;  // Use Sync_In1
+    syncSetting.m_line = m_line;  // Synchronization line determined by m_syncLine (1 or 2)
     syncSetting.m_function = XSF_TriggerIndication;  // Set function to trigger indication
     syncSetting.m_polarity = XSP_RisingEdge;  // Trigger on rising edge (change if needed)
     syncSetting.m_skipFactor = 0;  // No skipped triggers
