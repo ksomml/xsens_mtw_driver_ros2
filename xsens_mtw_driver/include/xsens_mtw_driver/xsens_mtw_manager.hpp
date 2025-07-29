@@ -11,6 +11,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
+// ROS2 messages
+#include "std_msgs/msg/int64.hpp"
+
 // Custom ROS2 messages
 #include "imu_msgs/msg/imu_data.hpp"
 #include "imu_msgs/msg/imu_data_array.hpp"
@@ -77,23 +80,31 @@ public:
 
 private:
     HardwareStatus m_status;
-    std::string m_fileName;
-    std::ofstream m_file;
-    std::vector<int> m_dataTracker;
     int m_maxDataSkip;
     int64_t m_timestamp;
     bool m_waitForConnections;
     bool m_keyInterrupt;
     bool m_isHeaderWritten;
+    std::ofstream m_file;
+    std::string m_fileName;
+    std::vector<int> m_dataTracker;
+
+    // Synchronization
+    bool m_syncSuccessful;
+    XsSyncLine m_line;
+    XsDataIdentifier m_lineDateIdentifier;
 
     // ROS2 Parameters
-    std::string m_mtwTopicName;
-    bool m_oneTopicPerImu;
     int m_ros2Rate;
     int m_imuRate;
     int m_radioChannel;
+    int m_syncLine;
+    bool m_oneTopicPerImu;
     bool m_imuResetOnRecord;
     bool m_useMagnetometer;
+    bool m_useSynchronization;
+    std::string m_mtwTopicName;
+    std::string m_syncTopicName;
 
     // ROS2 Callbacks
     rclcpp::TimerBase::SharedPtr m_connectTimer;
@@ -102,6 +113,7 @@ private:
     // ROS2 Publisher
     rclcpp::Publisher<imu_msgs::msg::IMUDataArray>::SharedPtr m_imuPublisher;
     std::vector<rclcpp::Publisher<imu_msgs::msg::IMUDataSingle>::SharedPtr> m_imuPublishers;
+    rclcpp::Publisher<std_msgs::msg::Int64>::SharedPtr m_syncPublisher;
 
     // ROS2 Services
     rclcpp::Service<xsrvs::Trigger>::SharedPtr m_statusService;
@@ -133,6 +145,7 @@ private:
     void initialMasterSetup();
     void connectMTWsCallback();
     void completeInitialization();
+    void syncInitialization();
     void publishDataCallback();
     void checkRateSupport();
     void mtwSetup();
