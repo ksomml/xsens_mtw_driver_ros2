@@ -13,7 +13,7 @@ xsens_mtw_manager:
 
     use_synchronization: true           # bool    Use synchronization with the Xsens MTw Manager
     synchronization_topic: "xsens_sync" # string  Topic name for synchronization messages
-    synchronization_line: 1             # int     Select the sychronisation line (1 or 2)
+    synchronization_line: 1             # int     Select the synchronization line (1 or 2)
 
 xsens_mtw_visualization:
   ros__parameters:
