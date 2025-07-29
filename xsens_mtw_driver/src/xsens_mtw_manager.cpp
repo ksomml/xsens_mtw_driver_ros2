@@ -36,7 +36,7 @@ XsensManager::XsensManager(const std::string & name)
 
     // TODO set to false by default
     this->declare_parameter("use_synchronization", true);
-    m_usesynchronization = this->get_parameter("use_synchronization").as_bool();
+    m_useSynchronization = this->get_parameter("use_synchronization").as_bool();
 
     this->declare_parameter("synchronization_topic", "xsens_sync");
     m_syncTopicName = this->get_parameter("synchronization_topic").as_string();
@@ -52,11 +52,13 @@ XsensManager::XsensManager(const std::string & name)
     RCLCPP_INFO(this->get_logger(), "- radio_channel: %d", m_radioChannel);
     RCLCPP_INFO(this->get_logger(), "- imu_reset_on_record: %s", m_imuResetOnRecord ? "true" : "false");
     RCLCPP_INFO(this->get_logger(), "- use_magnetometer: %s", m_useMagnetometer ? "true" : "false");
-
-    RCLCPP_INFO(this->get_logger(), "synchronization:");
-    RCLCPP_INFO(this->get_logger(), "  - use_synchronization: %s", m_usesynchronization ? "true" : "false");
-    RCLCPP_INFO(this->get_logger(), "  - topic_name: %s", m_syncTopicName.c_str());
-    RCLCPP_INFO(this->get_logger(), "  - synchronization_line: %d", m_syncLine);
+    RCLCPP_INFO(this->get_logger(), "Synchronization:");
+    RCLCPP_INFO(this->get_logger(), "  - use_synchronization: %s", m_useSynchronization ? "true" : "false");
+    if (m_useSynchronization)
+    {
+        RCLCPP_INFO(this->get_logger(), "  - synchronization_topic: %s", m_syncTopicName.c_str());
+        RCLCPP_INFO(this->get_logger(), "  - synchronization_line: %d", m_syncLine);
+    }
 
     // --------------------------------------------------------------------
     // ROS2 SERVICES
@@ -158,16 +160,13 @@ void XsensManager::initialMasterSetup()
         throw std::runtime_error(error.str());
     }
 
-    // synchronization
-    if (m_usesynchronization){
+    // Synchronization
+    if (m_useSynchronization){
+        RCLCPP_INFO(this->get_logger(), "Setting up synchronization...", m_syncLine);
         syncInitialization();
-        if(m_syncSuccessful)
-        {
-            m_syncPublisher = this->create_publisher<std_msgs::msg::Int64>(m_syncTopicName, 10);
-        }
-    } else {
-        m_syncSuccessful = false;
+        if(m_syncSuccessful) m_syncPublisher = this->create_publisher<std_msgs::msg::Int64>(m_syncTopicName, 10);
     }
+    else m_syncSuccessful = false;
 
     RCLCPP_INFO(this->get_logger(), "Putting master into configuration mode...");
     if (!m_wirelessMasterDevice->gotoConfig())
@@ -336,15 +335,14 @@ void XsensManager::completeInitialization()
     // Reset restart flag
     m_restartRequested = false;
 
-
+    // Start main publish timer
     m_publishTimer->reset();
-
 }
 
 // Complete synchronization_topic initialization steps
 void XsensManager::syncInitialization(){
     if(!m_wirelessMasterDevice->deviceId().isAwindaXStation()){
-        RCLCPP_ERROR(this->get_logger(), "Awinda XStation is required for synchronization");
+        RCLCPP_ERROR(this->get_logger(), "Awinda Station is required for synchronization");
         m_syncSuccessful = false;
         return;
     }
@@ -356,11 +354,10 @@ void XsensManager::syncInitialization(){
         m_line = XSL_In2;
         m_lineDateIdentifier = XDI_TriggerIn2;
     } else {
-        RCLCPP_ERROR(this->get_logger(), "Sync Line should be 1 or 2 and not %d", m_syncLine);
+        RCLCPP_ERROR(this->get_logger(), "Sync line should be 1 or 2 and not %d", m_syncLine);
         m_syncSuccessful = false;
         return;
     }
-
 
     XsSyncSetting syncSetting;
     syncSetting.m_line = m_line;  // Use Sync_In1
@@ -373,15 +370,14 @@ void XsensManager::syncInitialization(){
     syncSettings.push_back(syncSetting);
 
     if (!m_wirelessMasterDevice->setSyncSettings(syncSettings)) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to configure the synchronization");
+        RCLCPP_ERROR(this->get_logger(), "Failed to configure the synchronization on line %d", m_syncLine);
         m_syncSuccessful = false;
         return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "synchronization configured");
+    RCLCPP_INFO(this->get_logger(), "Synchronization configured successfully on line %d", m_syncLine);
     m_syncSuccessful = true;
     return;
-
 }
 
 // Main loop to publish IMU data collected from the Xsens MTw's (depends on m_publishTimer)
@@ -429,14 +425,13 @@ void XsensManager::publishDataCallback()
                 // Reset m_dataTracker if new data is available
                 m_dataTracker[i] = 0;
 
-                // If synchronization is needed
+                // Synchronization step if enabled
                 if(m_syncSuccessful){
                     XsTriggerIndicationData xtid = packet->triggerIndication(m_lineDateIdentifier);
                     if (xtid.m_timestamp > 0) {
                         std_msgs::msg::Int64 sync_msg;
                         sync_msg.data = xtid.m_timestamp;
                         m_syncPublisher->publish(sync_msg);
-
                     }
                 }
             }
@@ -736,10 +731,8 @@ void XsensManager::vqfSetup()
         m_imuRate
     );
 
-    if (m_useMagnetometer)
-        RCLCPP_INFO(this->get_logger(), "VQF: Magnetometer enabled");
-    else
-        RCLCPP_INFO(this->get_logger(), "VQF: Magnetometer disabled");
+    if (m_useMagnetometer) RCLCPP_INFO(this->get_logger(), "VQF: Magnetometer enabled");
+    else RCLCPP_INFO(this->get_logger(), "VQF: Magnetometer disabled");
 }
 
 // Setup the ROS2 messages for the IMU data filled with default values
@@ -1111,8 +1104,7 @@ void XsensManager::cleanupAndShutdown()
                             // If transport mode fails, Xsens blocks another request for ~15s
                             XsTime::msleep(15000);
                         }
-                        else
-                            mtw_success << m_mtwDevices[i]->deviceId().toString().toStdString() << " ";
+                        else mtw_success << m_mtwDevices[i]->deviceId().toString().toStdString() << " ";
                     }
                     if (mtw_fail.str().empty())
                         RCLCPP_INFO(this->get_logger(), "All MTw's turned off successfully");
