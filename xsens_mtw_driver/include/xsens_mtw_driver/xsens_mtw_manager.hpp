@@ -14,7 +14,6 @@
 // ROS2 messages
 #include "std_msgs/msg/int64.hpp"
 
-
 // Custom ROS2 messages
 #include "imu_msgs/msg/imu_data.hpp"
 #include "imu_msgs/msg/imu_data_array.hpp"
@@ -81,32 +80,31 @@ public:
 
 private:
     HardwareStatus m_status;
-    std::string m_fileName;
-    std::ofstream m_file;
-    std::vector<int> m_dataTracker;
     int m_maxDataSkip;
     int64_t m_timestamp;
     bool m_waitForConnections;
     bool m_keyInterrupt;
     bool m_isHeaderWritten;
+    std::ofstream m_file;
+    std::string m_fileName;
+    std::vector<int> m_dataTracker;
 
-    // synchronization
+    // Synchronization
     bool m_syncSuccessful;
     XsSyncLine m_line;
     XsDataIdentifier m_lineDateIdentifier;
 
     // ROS2 Parameters
-    std::string m_mtwTopicName;
-    bool m_oneTopicPerImu;
     int m_ros2Rate;
     int m_imuRate;
     int m_radioChannel;
+    int m_syncLine;
+    bool m_oneTopicPerImu;
     bool m_imuResetOnRecord;
     bool m_useMagnetometer;
-
-    bool m_usesynchronization;
+    bool m_useSynchronization;
+    std::string m_mtwTopicName;
     std::string m_syncTopicName;
-    int m_syncLine;
 
     // ROS2 Callbacks
     rclcpp::TimerBase::SharedPtr m_connectTimer;
