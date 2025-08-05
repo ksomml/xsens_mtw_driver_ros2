@@ -13,6 +13,7 @@ This project contains a ROS2 driver for the Xsens MTw Awinda system sensors.
 - Simultaneous orientation visualization in RViz for multiple IMUs
 - One-topic-for-all or one-topic-per-imu
 - Sync In support
+- Audio cues for IMU movement via the [`xsens_mtw_sounds_ros2`](https://github.com/ksomml/xsens_mtw_sounds_ros2) package
 
 ### Hardware
 
